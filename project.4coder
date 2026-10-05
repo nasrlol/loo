@@ -1,0 +1,78 @@
+version(2);
+project_name = "loo";
+
+patterns = {
+    "*.c",
+    "*.cpp",
+    "*.h",
+    "*.m",
+    "*.bat",
+    "*.sh",
+    "*.4coder",
+    "*.jr",
+};
+
+blacklist_patterns = {
+    ".*",
+};
+
+paths = {
+    { "./source/code", .relative = true, .recursive = true, },
+    { "./source/base", .relative = true, .recursive = true, },
+};
+
+linux_paths = {
+    { "./source/code", .relative = true, .recursive = true, },
+    { "./source/base", .relative = true, .recursive = true, },
+    { "/usr/include",        .relative = false, .recursive = false, },
+    { "/usr/include/vulkan", .relative = false, .recursive = false, },
+    { "/usr/include/X11",    .relative = false, .recursive = false, },
+};
+
+load_paths = {
+    .win   = paths,
+    .linux = linux_paths,
+    .mac   = paths,
+};
+
+commands = {
+    .build = {
+        .linux            = "./build.sh",
+        .mac              = "./build.sh",
+        .out              = "*compilation*",
+        .footer_panel     = false,
+        .save_dirty_files = true,
+        .cursor_at_end    = true,
+    },
+    .run = {
+        .linux            = "./build/loo",
+        .mac              = "./build/loo",
+        .out              = "*compilation*",
+        .footer_panel     = false,
+        .save_dirty_files = true,
+        .cursor_at_end    = true,
+    },
+    .test_build = {
+        .linux            = "./test.sh",
+        .mac              = "./test.sh",
+        .out              = "*compilation*",
+        .footer_panel     = false,
+        .save_dirty_files = true,
+        .cursor_at_end    = true,
+    },
+    .test_run = {
+        .linux            = "setarch $(uname -m) -R ./build/test", // disables address randomization
+        .mac              = "./test/build",
+        .out              = "*compilation*",
+        .footer_panel     = false,
+        .save_dirty_files = true,
+        .cursor_at_end    = true,
+    },
+};
+
+fkey_command = {
+    .F1 = "build",
+    .F2 = "run",
+    .F3 = "test_build",
+    .F4 = "test_run",
+};
