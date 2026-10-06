@@ -29,6 +29,11 @@
 #include <sys/un.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+
+#if DEBUG
+#include <errno.h>
+#endif
+
 #if PLATFORM_LINUX
 
 #if X11
@@ -46,7 +51,7 @@
 #endif // PLATFORM_UNIX - PLATFORM_WINDOWS
 
 #if VULKAN
-#include <vulkan/vulkan.h>
+// #include <vulkan/vulkan.h>
 #elif OPENGL
 ...
 #endif

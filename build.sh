@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-echo
 date
 echo "author: Abdellah El Morabit"
 echo
@@ -9,8 +8,10 @@ echo
 BUILD_DIR=build
 SOURCE_DIR=source
 INCLUDES="-I${SOURCE_DIR}/loo -I${SOURCE_DIR} -I${SOURCE_DIR}/base"
-CFLAGS="-g -fno-rtti -fno-exceptions -Wall -Werror -fanalyzer -no-pie -Wno-unused-function -Wno-unused-variable -O0"
+CFLAGS="-fno-rtti -fno-exceptions -Wall -Werror -fanalyzer -no-pie -Wno-unused-function -Wno-unused-variable -O0"
 LIBS=""
+
+DEBUG=1
 
 VULKAN=1
 WAYLAND=1
@@ -27,6 +28,10 @@ fi
 if [ $VULKAN -eq 1 ]; then
     LIBS+=" -lvulkan"
     CFLAGS+=" -DVULKAN=1"
+fi
+
+if [ $DEBUG -eq 1 ]; then
+	CFLAGS+=" -g -DDEBUG=1"
 fi
 
 mkdir -p "$BUILD_DIR"

@@ -32,7 +32,7 @@ linux_paths = {
 load_paths = {
     .win   = paths,
     .linux = linux_paths,
-    .mac   = paths,
+    .mac   = linux_paths,
 };
 
 commands = {

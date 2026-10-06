@@ -88,7 +88,7 @@ internal s32 x11_read_input();
 #define LinuxGetDisplayWdith(display, screen_num) DisplayWidth(display, screen_num)
 #define LinuxGetDisplayHeight(display, screen_num) DisplayHeight(display, screen_num);
 #define LinuxLoadBitMapFromFile(display, window, path, width, height, out, hotspot_x, hotspot_y)   \
-XReadBitmapFile(display, window, )
+    XReadBitmapFile(display, window, )
 
 #include "base_platform_linux_x11.cpp"
 
@@ -119,6 +119,34 @@ global_variable const u16 wayland_wl_display_error_event = 0;
 global_variable const u32 wayland_format_xrgb8888 = 1;
 global_variable const u32 wayland_header_size = 8;
 global_variable const u32 color_channels = 4;
+
+enum state_state_t: u16 {
+	STATE_NONE,
+	STATE_SURFACE_ACKED_CONFIGURE,
+	STATE_SURFACE_ATTACHED,
+};
+
+typedef struct state_t state_t;
+struct state_t {
+	uint32_t wl_registry;
+	uint32_t wl_shm;
+	uint32_t wl_shm_pool;
+	uint32_t wl_buffer;
+	uint32_t xdg_wm_base;
+	uint32_t xdg_surface;
+	uint32_t wl_compositor;
+	uint32_t wl_surface;
+	uint32_t xdg_toplevel;
+	uint32_t stride;
+	uint32_t w;
+	uint32_t h;
+	uint32_t shm_pool_size;
+	int shm_fd;
+	uint8_t *shm_pool_data;
+	
+	state_state_t state;
+};
+
 
 #include "base_platform_linux_wayland.cpp"
 
@@ -189,7 +217,7 @@ internal HWND win32_create_window(HINSTANCE instance, int height, int width, int
                                   int display_y, const char *window_name);
 
 #define Win32CreateWindow(instance, height, width, display_x, display_y)                           \
-win32_create_window(instance, height, width, display_x, display_y)
+    win32_create_window(instance, height, width, display_x, display_y)
 
 #define PlatformCreateWindow(instance, height, width, display_x, display_y)                        \
     Win32CreateWindow(instance, height, width, display_x, display_y)

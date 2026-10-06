@@ -31,6 +31,8 @@
 
 #define arena_align (2 * sizeof(void *))
 
+#define roundup_4(n) (((n) + 3) & -4)
+
 #define Min(a, b) (((a) < (b)) ? (a) : (b))
 #define Max(a, b) (((a) > (b)) ? (a) : (b))
 

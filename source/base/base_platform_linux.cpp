@@ -8,24 +8,22 @@ internal String8 unix_get_env(const char *var) {
     char *current = environ[index];
     while(environ[index] != NULL) {
         if(CstringAnyMatch(environ[index], var)) {
-            String8 buffer = str8(environ[index]);
+            buffer = str8(environ[index]);
 
             u64 equal_sign_pos = 0;
             b32 found_equal_sign = str8_find(&buffer, 0, str8("="), &equal_sign_pos);
 
             if(equal_sign_pos) {
-                buffer = str8_chop_left(buffer, equal_sign_pos);
+                buffer = str8_chop_left(buffer, equal_sign_pos + 1);
             }
 
-
-        } else {
-            Assert(0);
-        }
-        ++index;
+        return buffer;
+}
+                    ++index;
     }
-    return buffer;
 
-
+    AssertLog(buffer.size != 0, "env value not found\n");
+    return {0};
 }
 
 

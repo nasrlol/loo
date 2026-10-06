@@ -18,8 +18,8 @@ struct Params {
     const char *name;
     int width;
     int height;
-    VkExtensionProperties *vk_properties;
-    VkInstance            *vk_instance;
+    // VkExtensionProperties *vk_properties;
+    // VkInstance            *vk_instance;
 };
 
 internal void vk_render_entrypoint(MemArena *arena, WinParams *engine, Params *window);
