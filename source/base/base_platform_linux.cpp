@@ -17,9 +17,9 @@ internal String8 unix_get_env(const char *var) {
                 buffer = str8_chop_left(buffer, equal_sign_pos + 1);
             }
 
-        return buffer;
-}
-                    ++index;
+            return buffer;
+        }
+        ++index;
     }
 
     AssertLog(buffer.size != 0, "env value not found\n");
@@ -149,7 +149,6 @@ internal void unix_log_with_args(const char *format, ...)
     va_end(arguments);
 }
 
-internal void unix_os_exit() { _exit(0); }
 
 // TODO: rewrite this
 internal String8List *unix_open_dir(MemArena *arena, String8 *path)

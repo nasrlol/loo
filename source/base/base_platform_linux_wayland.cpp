@@ -1,193 +1,294 @@
-// https://gaultier.github.io/blog/wayland_from_scratch.html#creating-a-registry
-// TODO: replace unix_get_env with a generic macro
 
+//- software framebuffer
+// TODO: delete this section once vulkan is presenting. vkCreateWaylandSurfaceKHR only needs
+// state->display and state->surface, the driver then creates and attaches buffers itself.
 
+// creates a wl_buffer backed by shared memory that both we and the compositor can read.
+internal struct wl_buffer *wayland_create_shm_buffer(WaylandState *state) {
+    state->stride = state->width * 4; // 4 bytes per pixel (XRGB8888)
+    state->size = state->stride * state->height;
 
-//- wayland
-internal int wayland_display_connect(MemArena *arena) {
+    int fd = memfd_create("loo-shared-memory", MFD_CLOEXEC);
+    AssertLog((fd != -1), "Failed to open buffer for shared memory.");
+    AssertLog((ftruncate(fd, state->size) != -1), "Failed to truncate buffer.");
 
-    String8 str8_xdg_runtime_dir = unix_get_env("XDG_RUNTIME_DIR");
-    char *xdg_runtime_dir =  null_terminate(arena, &str8_xdg_runtime_dir);
-    sockaddr_un addr = {};
-    u64 socket_path_len = 0;
+    state->pixels = (u8 *)mmap(NULL, state->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    AssertLog((state->pixels != MAP_FAILED), "Failed to mmap shared memory.");
 
-// copy the xdg_runtime_dir value to the beginning of the bfufer
-{
-    addr.sun_family = AF_UNIX;
-    MemCpy(addr.sun_path, xdg_runtime_dir, str8_xdg_runtime_dir.size);
-    socket_path_len += str8_xdg_runtime_dir.size;
-    addr.sun_path[socket_path_len++] = '/'; // add an ending slash
+    // a pool is the compositor-side view of our shared memory. libwayland sends the fd
+    // over the socket for us (the SCM_RIGHTS dance, in the other direction).
+    struct wl_shm_pool *pool = wl_shm_create_pool(state->shm, fd, state->size);
+
+    // a buffer is a typed slice of the pool: offset, size, stride and pixel format
+    struct wl_buffer *buffer = wl_shm_pool_create_buffer(pool, 0, state->width, state->height,
+                                                         state->stride, WL_SHM_FORMAT_XRGB8888);
+
+    wl_shm_pool_destroy(pool);
+    close(fd);
+
+    return buffer;
 }
 
-    String8 str8_wayland_display_value = unix_get_env("WAYLAND_DISPLAY");
-Assert(str8_wayland_display_value.size != 0);
-    char *wayland_display = null_terminate(arena, &str8_wayland_display_value);
-
-    if(wayland_display == NULL)
-    {
-        const char *wayland_display_default = "wayland-0";
-        u64 wayland_display_default_len = cstring8_length((u8 *)wayland_display_default);
-        MemCpy(addr.sun_path, wayland_display_default, wayland_display_default_len);
+internal void wayland_draw_gradient(WaylandState *state) {
+    u32 *pixels = (u32 *)state->pixels;
+    for (u32 y = 0; y < state->height; y++) {
+        for (u32 x = 0; x < state->width; x++) {
+            u8 r = (u8)(x * 255 / state->width);
+            u8 g = (u8)(y * 255 / state->height);
+            u8 b = 0x80;
+            pixels[y * state->width + x] = (r << 16) | (g << 8) | b;
+        }
     }
-    else
-    {
-        MemCpy(addr.sun_path + str8_xdg_runtime_dir.size + 1, wayland_display, str8_wayland_display_value.size);
 }
 
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+internal void draw_square(u32 *pixels, WaylandState *state, u32 x_position, u32 y_position) {
 
-#if DEBUG // helps to read those errors? i guess i can just read stderr?
+for(u32 y = y_position; y < y_position + 10; ++y) {
 
+for(u32 x = x_position; x < x_position + 10; ++x) {
 
+u8 r = 0xff;
+ u8 g = 0xff;
+u8 b = 0xff;
+            pixels[y * state->width + x] = (r << 16) | (g << 8) | b;
 
-if(fd == -1)
-{
-perror("failed to open socket");
 }
-
-
-if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-{
-perror("failed to connect to socket");
+}
 
 }
 
-#endif
+internal void wayland_draw_weird_gradient(WaylandState *state) {
 
+local_persist u32 frame = 0;
+frame += 1;
 
-    AssertLog((fd != -1), "failed to open socket\n");
-    AssertLog((connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1), "failed to connect to socket\n");
+	local_persist u32 start_x = state->width / 2;
+	local_persist u32 start_y = state->width / 2;
 
-return fd;
+start_x += frame;
+
+draw_square((u32 *)state->pixels, state, start_x , start_y);
+
 
 }
 
 
-//- helper functions
+//- xdg_wm_base events
 
-internal void buf_write_u32(char *buf, u64 *buf_size, u64 buf_cap,
-                            u32 x) {
-    Assert(*buf_size + sizeof(x) <= buf_cap);
-    Assert(((size_t)buf + *buf_size) % sizeof(x) == 0);
-
-    *(u32 *)(buf + *buf_size) = x;
-    *buf_size += sizeof(x);
+// ping: the compositor checks we're still alive. if we don't pong, it may show the
+internal void wayland_xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base, u32 serial) {
+    xdg_wm_base_pong(xdg_wm_base, serial);
 }
 
-internal void buf_write_u16(char *buf, u64 *buf_size, u64 buf_cap,
-                            u16 x) {
-    Assert(*buf_size + sizeof(x) <= buf_cap);
-    Assert(((size_t)buf + *buf_size) % sizeof(x) == 0);
-
-    *(u16 *)(buf + *buf_size) = x;
-    *buf_size += sizeof(x);
-}
-
-internal void buf_write_string(char *buf, u64 *buf_size, u64 buf_cap,
-                               char *src, u32 src_len) {
-    Assert(*buf_size + src_len <= buf_cap);
-
-    buf_write_u32(buf, buf_size, buf_cap, src_len);
-    memcpy(buf + *buf_size, src, roundup_4(src_len));
-    *buf_size += roundup_4(src_len);
-}
-
-internal u32 buf_read_u32(char **buf, u64 *buf_size) {
-    Assert(*buf_size >= sizeof(u32));
-    Assert((size_t)*buf % sizeof(u32) == 0);
-
-    u32 res = *(u32 *)(*buf);
-    *buf += sizeof(res);
-    *buf_size -= sizeof(res);
-
-    return res;
-}
-
-internal u16 buf_read_u16(char **buf, u64 *buf_size) {
-    Assert(*buf_size >= sizeof(u16));
-    Assert((size_t)*buf % sizeof(u16) == 0);
-
-    u16 res = *(u16 *)(*buf);
-    *buf += sizeof(res);
-    *buf_size -= sizeof(res);
-
-    return res;
-}
-
-internal void buf_read_n(char **buf, u64 *buf_size, char *dst, u64 n) {
-    Assert(*buf_size >= n);
-
-    memcpy(dst, *buf, n);
-
-    *buf += n;
-    *buf_size -= n;
-}
-
-global_variable u64 wayland_current_id = 1;
-
-internal u32 wayland_wl_display_get_registry(int fd) {
-    uint64_t msg_size = 0;
-    char msg[128] = "";
-    buf_write_u32(msg, &msg_size, sizeof(msg), wayland_display_object_id);
-
-    buf_write_u16(msg, &msg_size, sizeof(msg),
-                  wayland_wl_display_get_registry_opcode);
-
-    u16 msg_announced_size = wayland_header_size + sizeof(wayland_current_id);
-    Assert(roundup_4(msg_announced_size) == msg_announced_size);
-    buf_write_u16(msg, &msg_size, sizeof(msg), msg_announced_size);
-
-    wayland_current_id++;
-    buf_write_u32(msg, &msg_size, sizeof(msg), wayland_current_id);
-
-    if ((s64)msg_size != send(fd, msg, msg_size, MSG_DONTWAIT))
-        exit(1);
-
-    Log("-> wl_display@%u.get_registry: wl_registry=%u\n",
-        wayland_display_object_id, wayland_current_id);
-
-    return wayland_current_id;
-}
+global_variable const struct xdg_wm_base_listener wayland_xdg_wm_base_listener = {
+    wayland_xdg_wm_base_ping,
+};
 
 
+//- frame
 
- internal void create_shared_memory_file(u64 size, state_t *state) {
-	char name[255] = "/";
-	for (u64 index = 1; index < cstring8_length((u8 *)name); ++index) {
-		name[index] = ((double)rand()) / (double)RAND_MAX * 26 + 'a';
-	}
+
+internal void wayland_frame_done(void *data, struct wl_callback *callback, u32 time_ms);
+
+global_variable const struct wl_callback_listener wayland_frame_listener = {
+wayland_frame_done,
+
+};
+
+
+internal void wayland_frame_done(void *data, struct wl_callback *callback, u32 time_ms) {
+
+WaylandState *state = (WaylandState *)data;
+wl_callback_destroy(callback);
+
+wayland_draw_weird_gradient(state);
+    struct wl_callback *next = wl_surface_frame(state->surface);
+    wl_callback_add_listener(next, &wayland_frame_listener, state);
 	
-	int fd = shm_open(name, O_RDWR | O_EXCL | O_CREAT, 0600);
-	 AssertLog((fd != -1), "Failed to open buffer for shared memory.");
-	
-	Assert(shm_unlink(name) != -1);
-	
-	 AssertLog((ftruncate(fd, size) != -1), "Failed to truncate buffer.");
-	
-	state->shm_pool_data = (u8 *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	Assert((void*)-1 != state->shm_pool_data);
-	Assert(state->shm_pool_data != NULL);
-	state->shm_fd = fd;
+    wl_surface_attach(state->surface, state->buffer, 0, 0);
+    wl_surface_damage(state->surface, 0, 0, state->width, state->height);
+    wl_surface_commit(state->surface);
+
 }
 
- internal void wayland_handle_message(int fd, state_t *state, char **msg,
-                                   uint64_t *msg_len) {
-	Assert(*msg_len >= 8);
+
+
+//- xdg_surface events
+
+internal void wayland_xdg_surface_configure(void *data, struct xdg_surface *xdg_surface, u32 serial) {
+    WaylandState *state = (WaylandState *)data;
+
+    xdg_surface_ack_configure(xdg_surface, serial);
+
+    if (state->buffer == NULL) {
+        state->buffer = wayland_create_shm_buffer(state);
+wayland_draw_weird_gradient(state);
+
+        struct wl_callback *cb = wl_surface_frame(state->surface);
+        wl_callback_add_listener(cb, &wayland_frame_listener, state);
+		wl_surface_attach(state->surface, state->buffer, 0, 0);
+		wl_surface_damage(state->surface, 0, 0, state->width, state->height);
+		wl_surface_commit(state->surface);
+    }
+
+    // attach = "this buffer is the surface's content", damage = "this region changed",
+    // commit = "apply everything I sent since the last commit, atomically".
+    // a wl_surface has pending state and current state, nothing is visible until commit.
+    wl_surface_attach(state->surface, state->buffer, 0, 0);
+    wl_surface_damage(state->surface, 0, 0, state->width, state->height);
+    wl_surface_commit(state->surface);
+}
+
+global_variable const struct xdg_surface_listener wayland_xdg_surface_listener = {
+    wayland_xdg_surface_configure,
+};
+
+
+//- xdg_toplevel events
+
+// TODO: handle resizing. with vulkan that means recreating the swapchain.
+internal void wayland_xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel,
+                                             s32 width, s32 height, struct wl_array *states) {
+
+WaylandState *state = (WaylandState *)data;
+    Log("<- xdg_toplevel.configure: width=%d height=%d\n", width, height);
+state->height = height;
+state->width  = width;
+
+}
+
+internal void wayland_xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel) {
+    WaylandState *state = (WaylandState *)data;
+    Log("<- xdg_toplevel.close\n");
+    state->should_close = true;
+}
+
+internal void wayland_xdg_toplevel_resize_edge(void *data, struct xdg_toplevel *xdg_toplevel,
+ s32 width, s32 height, struct wl_array *states) {
+
+
+}
+internal void wayland_xdg_toplevel_configure_bounds(void *data, struct xdg_toplevel *xdg_toplevel,
+                                                    s32 width, s32 height) {
+}
+
+internal void wayland_xdg_toplevel_wm_capabilities(void *data, struct xdg_toplevel *xdg_toplevel,
+                                                   struct wl_array *capabilities) {
+}
+
+global_variable const struct xdg_toplevel_listener wayland_xdg_toplevel_listener = {
+    wayland_xdg_toplevel_configure,
+    wayland_xdg_toplevel_close,
+    wayland_xdg_toplevel_configure_bounds,
+    wayland_xdg_toplevel_wm_capabilities,
+};
+
+
+//- wl_registry events
+
+internal void wayland_registry_global(void *data, struct wl_registry *registry, u32 name,
+                                      const char *interface, u32 version) {
+    WaylandState *state = (WaylandState *)data;
+
+    Log("<- wl_registry.global: name=%u interface=%s version=%u\n", name, interface, version);
+
+    if (CstringIsMatch(interface, wl_compositor_interface.name)) {
+        state->compositor = (struct wl_compositor *)
+            wl_registry_bind(registry, name, &wl_compositor_interface, Min(version, 4));
+    } else if (CstringIsMatch(interface, wl_shm_interface.name)) {
+        state->shm = (struct wl_shm *)
+            wl_registry_bind(registry, name, &wl_shm_interface, 1);
+    } else if(CstringIsMatch(interface, xdg_wm_base_interface.name)) {
+        state->xdg_wm_base = (struct xdg_wm_base *)
+            wl_registry_bind(registry, name, &xdg_wm_base_interface, 1);
+        xdg_wm_base_add_listener(state->xdg_wm_base, &wayland_xdg_wm_base_listener, state);
+    } else if (CstringIsMatch(interface, wl_seat_interface.name)) {
+        state->seat = (struct wl_seat *)
+            wl_registry_bind(registry, name, &wl_seat_interface, Min(version, 5));
+        wl_seat_add_listener(state->seat, &wayland_seat_listener, state); // has the keyboard handler
+    }
+}
+
+internal void wayland_registry_global_remove(void *data, struct wl_registry *registry, u32 name) {
+}
+
+global_variable const struct wl_registry_listener wayland_registry_listener = {
+    wayland_registry_global,
+    wayland_registry_global_remove,
+};
+
+//- entrypoint
+
+internal void wayland_entrypoint(MemArena *arena, LinuxWindowParams *params) {
+
+    WaylandState state = {};
+
+    state.display = wl_display_connect(NULL);
+    AssertLog((state.display != NULL), "failed to connect to wayland display\n");
+
+    // ask for the registry and listen to its global events
+    state.registry = wl_display_get_registry(state.display);
+    wl_registry_add_listener(state.registry, &wayland_registry_listener, &state);
+
+    wl_display_roundtrip(state.display);
+
+    AssertLog((state.compositor != NULL), "compositor has no wl_compositor\n");
+    AssertLog((state.shm != NULL), "compositor has no wl_shm\n");
+    AssertLog((state.xdg_wm_base != NULL), "compositor has no xdg_wm_base\n");
+    if (state.seat == NULL) {
+        Log("no wl_seat: running without keyboard input\n");
+    }
+
+    // build the window: surface -> give it the xdg role -> make it a toplevel
+    state.surface = wl_compositor_create_surface(state.compositor);
+
+    state.xdg_surface = xdg_wm_base_get_xdg_surface(state.xdg_wm_base, state.surface);
+    xdg_surface_add_listener(state.xdg_surface, &wayland_xdg_surface_listener, &state);
+
+    state.xdg_toplevel = xdg_surface_get_toplevel(state.xdg_surface);
+    xdg_toplevel_add_listener(state.xdg_toplevel, &wayland_xdg_toplevel_listener, &state);
+    xdg_toplevel_set_title(state.xdg_toplevel, params->name);
+    xdg_toplevel_set_app_id(state.xdg_toplevel, params->name);
+
+    wl_surface_commit(state.surface);
+
+    //
+    // TODO: blocking is fine while the picture is static. for a game loop that renders
+    // every frame we'll instead use wl_display_dispatch_pending + a non blocking read
+    // (wl_display_prepare_read / wl_display_read_events with poll on wl_display_get_fd).
+    while (!state.should_close) {
+
+        if (wl_display_dispatch(state.display) == -1) {
+            Log("wayland connection lost\n");
+goto regular_exit;
+        }
+
+if(state.keys_down[KEY_W]) { Log("Move Forward"); }
+if(state.keys_down[KEY_A]) { Log("Move Left"); }
+ if(state.keys_down[KEY_D]) { Log("Move Right"); }
+ if(state.keys_down[KEY_S]) { Log("Move Back"); }
+if(state.keys_down[KEY_Q]) {
+goto cleanup_exit;
+}
+
+}
+
+
+	cleanup_exit:
 	
-	 u32 object_id = buf_read_u32(msg, msg_len);
-	Assert(object_id <= wayland_current_id);
-	
-	 u16 opcode = buf_read_u16(msg, msg_len);
-	
-	 u16 announced_size = buf_read_u16(msg, msg_len);
-	Assert(roundup_4(announced_size) <= announced_size);
-	
-	 u32 header_size = sizeof(object_id) + sizeof(opcode) + sizeof(announced_size);
-Assert(announced_size <= header_size + *msg_len);
-	
-	if (object_id == state->wl_registry &&
-		opcode == wayland_wl_registry_event_global) {
-		// TODO
-	}
-	// Following: Lots of `if (opcode == ...) {... } else if (opcode = ...) { ... } [...]`
+    if (state.keyboard) wl_keyboard_destroy(state.keyboard);
+    if (state.buffer) wl_buffer_destroy(state.buffer);
+    if (state.pixels) munmap(state.pixels, state.size);
+    xdg_toplevel_destroy(state.xdg_toplevel);
+    xdg_surface_destroy(state.xdg_surface);
+    wl_surface_destroy(state.surface);
+    if (state.seat) wl_seat_destroy(state.seat);
+    xdg_wm_base_destroy(state.xdg_wm_base);
+    wl_shm_destroy(state.shm);
+    wl_compositor_destroy(state.compositor);
+    wl_registry_destroy(state.registry);
+return;
+
+regular_exit:
+return;
 }

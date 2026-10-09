@@ -125,7 +125,7 @@ internal MemStack *stack_push_align(MemStack *stack, u64 size, u8 alignment)
 
     stack->current_offset += size;
 
-    return (MemStack *)MemSet((MemStack *)next_address, size);
+    return (MemStack *)MemSetZero((MemStack *)next_address, size);
 }
 
 internal void *stack_push(MemStack *stack, u64 size)

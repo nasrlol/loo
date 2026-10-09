@@ -125,7 +125,7 @@ arena_resize_block_align(MemArena *arena, void *old_memory, u64 new_size, u64 ol
         if((arena->base_position + arena->previous_position) == old_memory) {
             arena->current_position = arena->previous_position + new_size;
             if(new_size > old_size) {
-                MemSet(&arena->current_position, new_size - old_size);
+                MemSetZero(old_mem + old_size, new_size - old_size);
             }
 
             return (MemArena *)old_memory;

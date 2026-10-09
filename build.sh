@@ -8,18 +8,27 @@ echo
 BUILD_DIR=build
 SOURCE_DIR=source
 INCLUDES="-I${SOURCE_DIR}/loo -I${SOURCE_DIR} -I${SOURCE_DIR}/base"
-CFLAGS="-fno-rtti -fno-exceptions -Wall -Werror -fanalyzer -no-pie -Wno-unused-function -Wno-unused-variable -O0"
+CFLAGS="-fno-rtti -fno-exceptions -Wall -Wundef -Werror -fanalyzer -no-pie -Wno-unused-function -Wno-unused-variable -O0 "
 LIBS=""
 
 DEBUG=1
 
-VULKAN=1
+VULKAN=0
 WAYLAND=1
 X11=0
 
 if [ $WAYLAND -eq 1 ]; then
-    LIBS+=" $(pkg-config --libs wayland-client)"
-    CFLAGS+=" $(pkg-config --cflags wayland-client) -DWAYLAND=1 -DX11=0"
+     CFLAGS+=" -DWAYLAND=1 -DX11=0"
+     LIBS+="-lwayland-client -lxkbcommon"
+
+# TODO: how often do we need the xdg protocol?
+     GENERATED_DIR="${BUILD_DIR}/generated"
+     XDG_SHELL_XML=/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
+     mkdir -p "$GENERATED_DIR"
+     wayland-scanner client-header "$XDG_SHELL_XML" "${GENERATED_DIR}/xdg-shell-client-protocol.h"
+     wayland-scanner private-code  "$XDG_SHELL_XML" "${GENERATED_DIR}/xdg-shell-protocol.c"
+     INCLUDES+=" -I${GENERATED_DIR}"
+
 elif [ $X11 -eq 1 ]; then
     LIBS+=" -lX11"
     CFLAGS+=" -DX11=1 -DWAYLAND=0"
