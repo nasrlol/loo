@@ -6,7 +6,7 @@ ENTRYPOINT()
     Assert(arena);
 
     LinuxWindowParams *params = PushStruct(arena, LinuxWindowParams);
-params->name = (cstring)"Loo";
+    params->name = (cstring)"Loo";
 
     wayland_entrypoint(arena, params);
 

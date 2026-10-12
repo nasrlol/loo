@@ -34,7 +34,7 @@ struct Window
 
 typedef struct LinuxWindowParams LinuxWindowParams;
 struct LinuxWindowParams {
-     cstring name;
+    cstring name;
     Display *display;
     Window window;
 };
@@ -134,13 +134,14 @@ struct WaylandState {
     struct wl_keyboard *keyboard;
     b32 keys_down[256]; // indexed by linux scancode
 
-//- mouse (pointer) input
+    //- mouse (pointer) input
 
-struct wl_pointer *pointer; // wl_pointer is a predefined <wayland-client.h> struct
-f32 mouse_x, mouse_y;
-b32 mouse_buttons[3];
-f32 x_offset, y_offset;
-b32 mouse_in_window;
+    struct wl_pointer *pointer; // wl_pointer is a predefined <wayland-client.h> struct
+    f32 mouse_x, mouse_y;
+
+    b32 mouse_buttons[3];
+    f32 x_offset, y_offset;
+    b32 mouse_in_window;
 
 
 
@@ -161,7 +162,8 @@ b32 mouse_in_window;
 #pragma GCC diagnostic pop
 
 
-#include "base_platform_linux_wayland_input.cpp"
+#include "base_platform_linux_wayland_mouse_input.cpp"
+#include "base_platform_linux_wayland_keyboard_input.cpp"
 #include "base_platform_linux_wayland.cpp"
 
 #endif // X11 and Wayland -- set by build params

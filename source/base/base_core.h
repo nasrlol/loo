@@ -56,6 +56,7 @@
 
 #define Min(a, b) (((a) < (b)) ? (a) : (b))
 #define Max(a, b) (((a) > (b)) ? (a) : (b))
+#define Clamp(value, low, high) Min(Max((value), (low)), (high))
 
 #define Unused(x) (void)(x)
 #define Nil 0
