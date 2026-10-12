@@ -1,4 +1,48 @@
 
+//- colors
+// TODO: should go in a header file later
+
+typedef struct RGB RGB;
+struct RGB {
+    u8 r;
+    u8 g;
+    u8 b;
+};
+
+#define BLACK   ((RGB){  0,   0,   0})
+#define WHITE   ((RGB){255, 255, 255})
+#define RED     ((RGB){255,   0,   0})
+#define GREEN   ((RGB){  0, 255,   0})
+#define BLUE    ((RGB){  0,   0, 255})
+#define YELLOW  ((RGB){255, 255,   0})
+#define CYAN    ((RGB){  0, 255, 255})
+#define MAGENTA ((RGB){255,   0, 255})
+
+#define GRAY       ((RGB){128, 128, 128})
+#define LIGHT_GRAY ((RGB){192, 192, 192})
+#define DARK_GRAY  ((RGB){ 64,  64,  64})
+
+#define ORANGE ((RGB){255, 165,   0})
+#define PURPLE ((RGB){128,   0, 128})
+#define PINK   ((RGB){255, 192, 203})
+#define BROWN  ((RGB){139,  69,  19})
+#define NAVY   ((RGB){  0,   0, 128})
+#define TEAL   ((RGB){  0, 128, 128})
+#define OLIVE  ((RGB){128, 128,   0})
+#define MAROON ((RGB){128,   0,   0})
+#define LIME   ((RGB){ 50, 205,  50})
+#define GOLD   ((RGB){255, 215,   0})
+
+//-
+typedef struct Object Object;
+struct Object
+{
+Vec2 pos;
+
+    f32 width;
+    f32 height;
+};
+
 //- software framebuffer
 // TODO: delete this section once vulkan is presenting. vkCreateWaylandSurfaceKHR only needs
 // state->display and state->surface, the driver then creates and attaches buffers itself.
@@ -29,46 +73,29 @@ internal struct wl_buffer *wayland_create_shm_buffer(WaylandState *state) {
     return buffer;
 }
 
-internal void wayland_draw_gradient(WaylandState *state) {
-    u32 *pixels = (u32 *)state->pixels;
-    for (u32 y = 0; y < state->height; y++) {
-        for (u32 x = 0; x < state->width; x++) {
-            u8 r = (u8)(x * 255 / state->width);
-            u8 g = (u8)(y * 255 / state->height);
-            u8 b = 0x80;
-            pixels[y * state->width + x] = (r << 16) | (g << 8) | b;
+internal void draw_square(u32 *pixels, WaylandState *state, Vec2 pos, s32 width, s32 height, RGB color) {
+
+    s32 center_x = (s32)((pos.x + 1.0f) * 0.5f * state->width);
+    s32 center_y = (s32)((1.0f - pos.y) * 0.5f * state->height);
+
+    s32 x0 = center_x - width / 2;
+    s32 y0 = center_y - height / 2;
+    s32 x1 = x0 + width;
+    s32 y1 = y0 + height;
+
+    // clip to the framebuffer
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 > (s32)state->width)  x1 = state->width;
+    if (y1 > (s32)state->height) y1 = state->height;
+
+    u32 c = (color.r << 16) | (color.g << 8) | color.b;
+
+    for (s32 y = y0; y < y1; ++y) {
+        for (s32 x = x0; x < x1; ++x) {
+            pixels[y * state->width + x] = c;
         }
     }
-}
-
-internal void draw_square(u32 *pixels, WaylandState *state, u32 x_position, u32 y_position) {
-
-for(u32 y = y_position; y < y_position + 10; ++y) {
-
-for(u32 x = x_position; x < x_position + 10; ++x) {
-
-u8 r = 0xff;
- u8 g = 0xff;
-u8 b = 0xff;
-            pixels[y * state->width + x] = (r << 16) | (g << 8) | b;
-
-}
-}
-
-}
-
-internal void wayland_draw_weird_gradient(WaylandState *state) {
-
-local_persist u32 frame = 0;
-frame += 1;
-
-	local_persist u32 start_x = state->width / 2;
-	local_persist u32 start_y = state->width / 2;
-
-start_x += frame;
-
-draw_square((u32 *)state->pixels, state, start_x , start_y);
-
 
 }
 
@@ -91,25 +118,80 @@ global_variable const struct xdg_wm_base_listener wayland_xdg_wm_base_listener =
 internal void wayland_frame_done(void *data, struct wl_callback *callback, u32 time_ms);
 
 global_variable const struct wl_callback_listener wayland_frame_listener = {
-wayland_frame_done,
+    wayland_frame_done,
 
 };
 
 
+internal Vec2 normalize_vec2_position_to_screen(Vec2 pos, s32 width, s32 height)
+{
+return Vec2(Clamp((pos.x + 1.0f) * 0.5f * width, 0, width - 1), Clamp((pos.y + 1.0f) * 0.5f * height, 0, width - 1));
+}
+
+
+internal void square_game(WaylandState *state, u32 time_ms) {
+
+
+	
+    local_persist Object object_a = { 0, 0, 80, 80 };
+    local_persist Object object_b = { 0.2, 0.8, 80, 80 };
+    local_persist Object object_c = { 0.3, -0.5, 80, 80};
+	
+    local_persist u32 previous_time_ms = 0;
+    f32 dt = previous_time_ms ? (f32)(time_ms - previous_time_ms) / 1000.0f : 0.0f;
+    previous_time_ms = time_ms;
+	
+    f32 speed = 1.0f;
+	
+    if(state->keys_down[KEY_W]) {
+        Log("Moving forward");
+        object_a.pos.y += speed * dt;
+    }
+    if(state->keys_down[KEY_A]) {
+        object_a.pos.x -= speed * dt;
+    }
+    if(state->keys_down[KEY_D]) {
+        object_a.pos.x += speed * dt;
+    }
+	
+    if(state->keys_down[KEY_S]) {
+        object_a.pos.y -= speed * dt;
+    }
+	
+	
+    MemSetZero(state->pixels, state->size);
+    draw_square((u32 *)state->pixels, state, normalize_vec2_position_to_screen(object_a.pos, state->width, state->height), object_a.pos, object_a.width, object_a.height, RED);
+    //-
+	
+
+}
+
 internal void wayland_frame_done(void *data, struct wl_callback *callback, u32 time_ms) {
 
-WaylandState *state = (WaylandState *)data;
-wl_callback_destroy(callback);
+    WaylandState *state = (WaylandState *)data;
+    wl_callback_destroy(callback);
 
-wayland_draw_weird_gradient(state);
+//- start
+
+
+for(u32 x_index = 0; x_index < state->width; x_index += state->width / 10)
+{
+for(u32 y_index = 0; y_index < state->height; y_index += state->height / 10)
+{
+draw_square((u32 *)state->pixels, state, Vec2((f32)x_index, (f32)y_index), state->width, state->height, WHITE);
+}
+}
+
+
+//- end
     struct wl_callback *next = wl_surface_frame(state->surface);
     wl_callback_add_listener(next, &wayland_frame_listener, state);
-	
+
     wl_surface_attach(state->surface, state->buffer, 0, 0);
     wl_surface_damage(state->surface, 0, 0, state->width, state->height);
     wl_surface_commit(state->surface);
-
 }
+
 
 
 
@@ -122,13 +204,12 @@ internal void wayland_xdg_surface_configure(void *data, struct xdg_surface *xdg_
 
     if (state->buffer == NULL) {
         state->buffer = wayland_create_shm_buffer(state);
-wayland_draw_weird_gradient(state);
 
         struct wl_callback *cb = wl_surface_frame(state->surface);
         wl_callback_add_listener(cb, &wayland_frame_listener, state);
-		wl_surface_attach(state->surface, state->buffer, 0, 0);
-		wl_surface_damage(state->surface, 0, 0, state->width, state->height);
-		wl_surface_commit(state->surface);
+        wl_surface_attach(state->surface, state->buffer, 0, 0);
+        wl_surface_damage(state->surface, 0, 0, state->width, state->height);
+        wl_surface_commit(state->surface);
     }
 
     // attach = "this buffer is the surface's content", damage = "this region changed",
@@ -144,17 +225,19 @@ global_variable const struct xdg_surface_listener wayland_xdg_surface_listener =
 };
 
 
-//- xdg_toplevel events
+//- xdg_
 
 // TODO: handle resizing. with vulkan that means recreating the swapchain.
 internal void wayland_xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel,
                                              s32 width, s32 height, struct wl_array *states) {
 
-WaylandState *state = (WaylandState *)data;
+    WaylandState *state = (WaylandState *)data;
     Log("<- xdg_toplevel.configure: width=%d height=%d\n", width, height);
-state->height = height;
-state->width  = width;
-
+    if(width > 0 && height > 0)
+    {
+        state->height = height;
+        state->width  = width;
+    }
 }
 
 internal void wayland_xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel) {
@@ -163,17 +246,13 @@ internal void wayland_xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_to
     state->should_close = true;
 }
 
-internal void wayland_xdg_toplevel_resize_edge(void *data, struct xdg_toplevel *xdg_toplevel,
- s32 width, s32 height, struct wl_array *states) {
-
-
-}
-internal void wayland_xdg_toplevel_configure_bounds(void *data, struct xdg_toplevel *xdg_toplevel,
-                                                    s32 width, s32 height) {
+internal void wayland_xdg_toplevel_configure_bounds(void *data, struct xdg_toplevel *xdg_toplevel, s32 width, s32 height) {
+    // NOTE: empty for now...
 }
 
-internal void wayland_xdg_toplevel_wm_capabilities(void *data, struct xdg_toplevel *xdg_toplevel,
-                                                   struct wl_array *capabilities) {
+internal void wayland_xdg_toplevel_wm_capabilities(void *data, struct xdg_toplevel *xdg_toplevel, struct wl_array *capabilities) {
+    // NOTE: seperating differnent frames (windows i guess) as toplevel or popup
+    // https://wayland-book.com/xdg-shell-basics.html
 }
 
 global_variable const struct xdg_toplevel_listener wayland_xdg_toplevel_listener = {
@@ -223,6 +302,9 @@ internal void wayland_entrypoint(MemArena *arena, LinuxWindowParams *params) {
 
     WaylandState state = {};
 
+    state.height = 800;
+    state.width = 400;
+
     state.display = wl_display_connect(NULL);
     AssertLog((state.display != NULL), "failed to connect to wayland display\n");
 
@@ -260,22 +342,11 @@ internal void wayland_entrypoint(MemArena *arena, LinuxWindowParams *params) {
 
         if (wl_display_dispatch(state.display) == -1) {
             Log("wayland connection lost\n");
-goto regular_exit;
+            break;
         }
 
-if(state.keys_down[KEY_W]) { Log("Move Forward"); }
-if(state.keys_down[KEY_A]) { Log("Move Left"); }
- if(state.keys_down[KEY_D]) { Log("Move Right"); }
- if(state.keys_down[KEY_S]) { Log("Move Back"); }
-if(state.keys_down[KEY_Q]) {
-goto cleanup_exit;
-}
+    }
 
-}
-
-
-	cleanup_exit:
-	
     if (state.keyboard) wl_keyboard_destroy(state.keyboard);
     if (state.buffer) wl_buffer_destroy(state.buffer);
     if (state.pixels) munmap(state.pixels, state.size);
@@ -287,8 +358,4 @@ goto cleanup_exit;
     wl_shm_destroy(state.shm);
     wl_compositor_destroy(state.compositor);
     wl_registry_destroy(state.registry);
-return;
-
-regular_exit:
-return;
 }

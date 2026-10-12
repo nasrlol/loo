@@ -1,3 +1,4 @@
+
 internal void wayland_keyboard_keymap(void *data, struct wl_keyboard *keyboard, u32 format, s32 fd, u32 size) {
     Log("<- wl_keyboard.keymap: format=%u fd=%d size=%u\n", format, fd, size);
     close(fd);
@@ -39,7 +40,7 @@ internal void wayland_keyboard_key(void *data, struct wl_keyboard *keyboard, u32
         state->keys_down[key] = pressed;
     }
 
-    if (key == KEY_ESC && pressed) {
+    if ((key == KEY_ESC || key == KEY_Q) && pressed) {
         state->should_close = true;
     }
 }
@@ -65,80 +66,26 @@ global_variable const struct wl_keyboard_listener wayland_keyboard_listener = {
     wayland_keyboard_repeat_info, // opcode 5
 };
 
-//- mouse (pointer) input
-
-enum wayland_mouse_button_pressed: b32 {
-
-PRESSED,
-RELEASED,
-
-};
-
-internal void wayland_button_event(void *data, struct wl_pointer *pointer,
- u32 serial, u32 time, u32 button, u32 state) {
-
-
-}
-
-
-internal void wayland_pointer_enter(void *data, struct wl_pointer *pointer,
- u32 serial, struct wl_surface *surface, wl_fixed_t surface_x, wl_fixed_t surface_y) {
-WaylandState *state = (WaylandState *)data;
-Log("<- pointer enteirng window");
-state->mouse_in_window = true;
-state->x_offset = surface_x;
-state->y_offset = surface_y;
-
-
-}
-internal void wayland_pointer_motion(void *data, struct wl_pointer *pointer, u32 time,
-                                     wl_fixed_t surface_x, wl_fixed_t surface_y) {
-    WaylandState *state = (WaylandState *)data;
-    state->x_offset = (f32)wl_fixed_to_double(surface_x);
-    state->y_offset = (f32)wl_fixed_to_double(surface_y);
-}
-
-internal void wayland_pointer_leave(void *data, struct wl_pointer *pointer, u32 serial, wl_surface *surface) {
-WaylandState *state = (WaylandState *)data;
-state->mouse_in_window = false;
-Log("<- pointer leaving window");
-}
-
-
-
-global_variable const struct wl_pointer_listener wayland_pointer_listener = {
-wayland_pointer_enter,
-wayland_pointer_leave,
-wayland_pointer_motion,
-  wayland_button_event,
-};
-
 
 
 
 
 //- wl_seat events
 
-// capabilities: tells us which devices this seat has, as a bitmask:
-//   WL_SEAT_CAPABILITY_POINTER = 1, WL_SEAT_CAPABILITY_KEYBOARD = 2, WL_SEAT_CAPABILITY_TOUCH = 4
-// this can be sent again later (keyboard unplugged / plugged in), so we handle both directions.
 internal void wayland_seat_capabilities(void *data, struct wl_seat *seat, u32 capabilities) {
 
     WaylandState *state = (WaylandState *)data;
     b32 has_keyboard = (capabilities & WL_SEAT_CAPABILITY_KEYBOARD) != 0;
+    b32 has_pointer  = (capabilities & WL_SEAT_CAPABILITY_POINTER) != 0;
+
 
 
     Log("<- wl_seat.capabilities: %u\n", capabilities);
 
     if (has_keyboard && state->keyboard == NULL) {
-        // get_keyboard is a request that creates a new object (a "new_id" argument).
-        // libwayland allocates the id, sends the message, and hands us the proxy.
         state->keyboard = wl_seat_get_keyboard(seat);
         wl_keyboard_add_listener(state->keyboard, &wayland_keyboard_listener, state);
     } else if (!has_keyboard && state->keyboard != NULL) {
-        // keyboard went away: tell the compositor we're done with the object, free the proxy.
-        // the `release` request only exists since wl_seat version 3; before that we can
-        // only free our side of it with destroy.
         if (wl_keyboard_get_version(state->keyboard) >= WL_KEYBOARD_RELEASE_SINCE_VERSION) {
             wl_keyboard_release(state->keyboard);
         } else {
@@ -146,6 +93,22 @@ internal void wayland_seat_capabilities(void *data, struct wl_seat *seat, u32 ca
         }
         state->keyboard = NULL;
     }
+
+    if(has_pointer && state->pointer == NULL) {
+        state->pointer = wl_seat_get_pointer(seat);
+        wl_pointer_add_listener(state->pointer, &wayland_pointer_listener, state);
+    } else if(!has_pointer && state->pointer != NULL){
+        if (wl_pointer_get_version(state->pointer) >= WL_POINTER_RELEASE_SINCE_VERSION) {
+            wl_pointer_release(state->pointer);
+        } else {
+            wl_pointer_destroy(state->pointer);
+        }
+        state->pointer = NULL;
+
+
+    }
+
+
 }
 
 // name: a human readable seat name like "seat0". only useful for multi-seat setups.
