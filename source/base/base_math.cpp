@@ -36,3 +36,8 @@ return result;
 }
 	
 	
+internal Vec2 normalize_vec2_position_to_screen(Vec2 pos, s32 width, s32 height)
+{
+return Vec2(Clamp((pos.x + 1.0f) * 0.5f * width, 0, width - 1), Clamp((pos.y + 1.0f) * 0.5f * height, 0, width - 1));
+}
+

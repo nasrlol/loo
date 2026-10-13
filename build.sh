@@ -9,7 +9,7 @@ BUILD_DIR=build
 SOURCE_DIR=source
 INCLUDES="-I${SOURCE_DIR}/loo -I${SOURCE_DIR} -I${SOURCE_DIR}/base"
 CFLAGS="-fno-rtti -fno-exceptions -Wall -Wundef -Werror -fanalyzer -no-pie -Wno-unused-function -Wno-unused-variable -O0 "
-LIBS=""
+LIBS="-pthread "
 
 DEBUG=1
 

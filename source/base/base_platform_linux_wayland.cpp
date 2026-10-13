@@ -33,16 +33,6 @@ struct RGB {
 #define LIME   ((RGB){ 50, 205,  50})
 #define GOLD   ((RGB){255, 215,   0})
 
-//-
-typedef struct Object Object;
-struct Object
-{
-Vec2 pos;
-
-    f32 width;
-    f32 height;
-};
-
 //- software framebuffer
 // TODO: delete this section once vulkan is presenting. vkCreateWaylandSurfaceKHR only needs
 // state->display and state->surface, the driver then creates and attaches buffers itself.
@@ -73,33 +63,6 @@ internal struct wl_buffer *wayland_create_shm_buffer(WaylandState *state) {
     return buffer;
 }
 
-internal void draw_square(u32 *pixels, WaylandState *state, Vec2 pos, s32 width, s32 height, RGB color) {
-
-    s32 center_x = (s32)((pos.x + 1.0f) * 0.5f * state->width);
-    s32 center_y = (s32)((1.0f - pos.y) * 0.5f * state->height);
-
-    s32 x0 = center_x - width / 2;
-    s32 y0 = center_y - height / 2;
-    s32 x1 = x0 + width;
-    s32 y1 = y0 + height;
-
-    // clip to the framebuffer
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (x1 > (s32)state->width)  x1 = state->width;
-    if (y1 > (s32)state->height) y1 = state->height;
-
-    u32 c = (color.r << 16) | (color.g << 8) | color.b;
-
-    for (s32 y = y0; y < y1; ++y) {
-        for (s32 x = x0; x < x1; ++x) {
-            pixels[y * state->width + x] = c;
-        }
-    }
-
-}
-
-
 //- xdg_wm_base events
 
 // ping: the compositor checks we're still alive. if we don't pong, it may show the
@@ -114,7 +77,6 @@ global_variable const struct xdg_wm_base_listener wayland_xdg_wm_base_listener =
 
 //- frame
 
-
 internal void wayland_frame_done(void *data, struct wl_callback *callback, u32 time_ms);
 
 global_variable const struct wl_callback_listener wayland_frame_listener = {
@@ -122,68 +84,19 @@ global_variable const struct wl_callback_listener wayland_frame_listener = {
 
 };
 
-
-internal Vec2 normalize_vec2_position_to_screen(Vec2 pos, s32 width, s32 height)
-{
-return Vec2(Clamp((pos.x + 1.0f) * 0.5f * width, 0, width - 1), Clamp((pos.y + 1.0f) * 0.5f * height, 0, width - 1));
-}
-
-
-internal void square_game(WaylandState *state, u32 time_ms) {
-
-
-	
-    local_persist Object object_a = { 0, 0, 80, 80 };
-    local_persist Object object_b = { 0.2, 0.8, 80, 80 };
-    local_persist Object object_c = { 0.3, -0.5, 80, 80};
-	
-    local_persist u32 previous_time_ms = 0;
-    f32 dt = previous_time_ms ? (f32)(time_ms - previous_time_ms) / 1000.0f : 0.0f;
-    previous_time_ms = time_ms;
-	
-    f32 speed = 1.0f;
-	
-    if(state->keys_down[KEY_W]) {
-        Log("Moving forward");
-        object_a.pos.y += speed * dt;
-    }
-    if(state->keys_down[KEY_A]) {
-        object_a.pos.x -= speed * dt;
-    }
-    if(state->keys_down[KEY_D]) {
-        object_a.pos.x += speed * dt;
-    }
-	
-    if(state->keys_down[KEY_S]) {
-        object_a.pos.y -= speed * dt;
-    }
-	
-	
-    MemSetZero(state->pixels, state->size);
-    draw_square((u32 *)state->pixels, state, normalize_vec2_position_to_screen(object_a.pos, state->width, state->height), object_a.pos, object_a.width, object_a.height, RED);
-    //-
-	
-
-}
+#ifdef RENDER
+internal void render_frame(WaylandState *state);
+#endif
 
 internal void wayland_frame_done(void *data, struct wl_callback *callback, u32 time_ms) {
 
     WaylandState *state = (WaylandState *)data;
     wl_callback_destroy(callback);
 
-//- start
+#ifdef RENDER
+render_frame(state);
+#endif
 
-
-for(u32 x_index = 0; x_index < state->width; x_index += state->width / 10)
-{
-for(u32 y_index = 0; y_index < state->height; y_index += state->height / 10)
-{
-draw_square((u32 *)state->pixels, state, Vec2((f32)x_index, (f32)y_index), state->width, state->height, WHITE);
-}
-}
-
-
-//- end
     struct wl_callback *next = wl_surface_frame(state->surface);
     wl_callback_add_listener(next, &wayland_frame_listener, state);
 
@@ -298,12 +211,12 @@ global_variable const struct wl_registry_listener wayland_registry_listener = {
 
 //- entrypoint
 
-internal void wayland_entrypoint(MemArena *arena, LinuxWindowParams *params) {
+internal void wayland_entrypoint(MemArena *arena, WindowParams params) {
 
     WaylandState state = {};
 
-    state.height = 800;
-    state.width = 400;
+if(params.window_height == 0) { state.height = 800; }
+if(params.window_width == 0) { state.width = 400; }
 
     state.display = wl_display_connect(NULL);
     AssertLog((state.display != NULL), "failed to connect to wayland display\n");
@@ -329,8 +242,8 @@ internal void wayland_entrypoint(MemArena *arena, LinuxWindowParams *params) {
 
     state.xdg_toplevel = xdg_surface_get_toplevel(state.xdg_surface);
     xdg_toplevel_add_listener(state.xdg_toplevel, &wayland_xdg_toplevel_listener, &state);
-    xdg_toplevel_set_title(state.xdg_toplevel, params->name);
-    xdg_toplevel_set_app_id(state.xdg_toplevel, params->name);
+    xdg_toplevel_set_title(state.xdg_toplevel, params.name);
+    xdg_toplevel_set_app_id(state.xdg_toplevel, params.name);
 
     wl_surface_commit(state.surface);
 

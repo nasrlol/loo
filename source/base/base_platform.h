@@ -18,33 +18,23 @@ struct Directory {
 
 #if 1 // TODO: @WAYLAND and @X11 implementation
 
-typedef struct Display Display;
-struct Display
-{
-    int width;
-    int height;
+typedef struct WindowParams WindowParams;
+struct WindowParams {
+     cstring name;
+    int window_width;
+    int window_height;
+    int display_width;
+    int display_height;
+
 };
 
-typedef struct Window Window;
-struct Window
-{
-    int width;
-    int height;
-};
-
-typedef struct LinuxWindowParams LinuxWindowParams;
-struct LinuxWindowParams {
-    cstring name;
-    Display *display;
-    Window window;
-};
-
-#define LinuxLoadSharedLibrary(arena, library) unix_load_shared_library(arena, library)
+#define LinuxLoadSharedLibrary(arena, name) unix_load_shared_library(arena, name)
+#define LoadSharedLibrary (arena, name) LinuxLoadSharedLibrary(arena, name)
 #endif
 
 //- Shared libraries
 internal void *unix_shared_library_get_proc_from_name(SharedLibrary *library, const char *name);
-internal void unix_load_shared_library(MemArena *arena, SharedLibrary *library);
+internal void unix_load_shared_library(MemArena *arena);
 internal int unix_shared_library_close(SharedLibrary *library);
 
 internal String8 unix_get_env(const char *var);
@@ -66,7 +56,6 @@ internal void unix_log_with_args(const char *format, ...);
 #define FileWrite(data, path) unix_file_write(data, path)
 #define FileExists(path) unix_file_exists(path)
 #define DirLoad(arena, path) unix_open_dir(arena, path)
-
 
 #if DEBUG
 #define OSExit(code) _exit(code)
@@ -166,6 +155,9 @@ struct WaylandState {
 #include "base_platform_linux_wayland_keyboard_input.cpp"
 #include "base_platform_linux_wayland.cpp"
 
+internal void wayland_entrypoint(MemArena *arena, WindowParams *params);
+#define PlatformWindowEntrypoint(arena, params) wayland_entrypoint(arena, params);
+
 #endif // X11 and Wayland -- set by build params
 
 //- Windows
@@ -206,6 +198,7 @@ internal void win32_log(String8List messages);
 #define FileExists(path) win32_file_exists(path)
 #define Win32FileExists(path) win32_file_exists(path)
 #define DirLoad(arena, path) win32_open_dir(arena, original_path);
+
 #define OSExit(code) win32_os_exit()
 
 #if COMPILER_GCC || COMPILER_CLANG

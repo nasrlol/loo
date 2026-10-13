@@ -51,6 +51,8 @@
 #include <fcntl.h>
 #include <dlfcn.h>
 
+#include <pthread.h>
+
 #if PLATFORM_LINUX
 
 #include <linux/input-event-codes.h>
@@ -80,7 +82,6 @@
 #endif
 
 //-
-
 #include <time.h>
 #include <string.h>
 #include <stdint.h>
@@ -95,6 +96,7 @@
 #include "base_arena.h"
 #include "base_stack.h"
 #include "base_string.h"
+#include "base_thread.h"
 #include "base_math.h"
 #include "base_platform.h"
 #include "base_render.h"
@@ -103,7 +105,7 @@
 #include "base_arena.cpp"
 #include "base_stack.cpp"
 #include "base_string.cpp"
-
+#include "base_thread.cpp"
 #include "base_math.cpp"
 
 #if PLATFORM_LINUX

@@ -29,11 +29,12 @@ internal String8 unix_get_env(const char *var) {
 
 
 //-
-internal void unix_load_shared_library(MemArena *arena, SharedLibrary *library) {
-
-    void *data = dlopen(library->name, RTLD_LAZY | RTLD_LOCAL);
-    AssertLog(data, "failed to load shared object %s", library->name); // Assert and print the error that get's reported to dlerror
-    library->mem = data;
+internal SharedLibrary  unix_load_shared_library(MemArena *arena, cstring name) {
+SharedLibrary lib = {0};
+    void *data = dlopen(name, RTLD_LAZY | RTLD_LOCAL);
+    AssertLog(data, "failed to load shared object %s", name); // Assert and print the error that get's reported to dlerror
+    lib.mem = data;
+return lib;
 }
 
 internal void *unix_shared_library_get_proc_from_name(SharedLibrary *library, const char *name)
