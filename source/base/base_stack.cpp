@@ -110,7 +110,7 @@ internal MemStack *stack_push_align(MemStack *stack, u64 size, u8 alignment)
 
     u64 current_address;
     current_address = (u64)stack->base_position + stack->current_offset; // NOTE: we already we're checking if the stack existed
-    padding = calculate_padding(current_address, alignment, sizeof(MemStackHeader));
+    padding         = calculate_padding(current_address, alignment, sizeof(MemStackHeader));
 
     if (stack->current_offset + padding + size > stack->capacity) {
         breakpoint();
@@ -119,9 +119,9 @@ internal MemStack *stack_push_align(MemStack *stack, u64 size, u8 alignment)
 
     stack->current_offset += padding;
 
-    u64 next_address       = current_address + (u64)padding;
-    MemStackHeader *header = (MemStackHeader *)(next_address - sizeof(MemStackHeader));
-    header->padding        = padding;
+    u64             next_address = current_address + (u64)padding;
+    MemStackHeader *header       = (MemStackHeader *)(next_address - sizeof(MemStackHeader));
+    header->padding              = padding;
 
     stack->current_offset += size;
 
@@ -136,9 +136,9 @@ internal void *stack_push(MemStack *stack, u64 size)
 internal void stack_pop(MemStack *stack, void *pointer)
 {
     if (pointer != NULL) {
-        u64 start, end, current_address;
+        u64             start, end, current_address;
         MemStackHeader *header;
-        u64 prev_offset;
+        u64             prev_offset;
 
         start           = (u64)stack->base_position;
         end             = start + (u64)stack->capacity;
@@ -171,8 +171,8 @@ internal MemStack *stack_resize_align(MemStack *stack, void *pointer, u64 old_si
         return NULL;
     }
 
-    u64 start, end, current_address;
-    u64 min_size = old_size < new_size ? old_size : new_size;
+    u64   start, end, current_address;
+    u64   min_size = old_size < new_size ? old_size : new_size;
     void *new_pointer;
 
     start           = (u64)stack->base_position;
@@ -198,11 +198,10 @@ internal MemStack *stack_resize_align(MemStack *stack, void *pointer, u64 old_si
 
 internal MemStack *arena_to_stack(MemArena *arena, u64 requested_size)
 {
-
     Assert(arena);
 
-    MemStack *stack = PushStruct(arena, MemStack);
-    u8 *buffer = PushArray(arena, u8, requested_size);
+    MemStack *stack  = PushStruct(arena, MemStack);
+    u8       *buffer = PushArray(arena, u8, requested_size);
 
     stack->header         = 0;
     stack->base_position  = buffer;
@@ -231,4 +230,7 @@ stack_debug_view(MemArena *global_arena, MemStack *stack)
 }
 #endif
 
-internal void stack_clear(MemStack *stack) { stack->current_offset = 0; }
+internal void stack_clear(MemStack *stack)
+{
+    stack->current_offset = 0;
+}

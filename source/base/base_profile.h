@@ -4,7 +4,6 @@
 
 typedef struct Profile Profile;
 struct Profile {
-
     f32 start;
     f32 end;
     // TODO: is there a way to measure the cpu cycles?
@@ -13,7 +12,6 @@ struct Profile {
 #if GRAPHICS
     f32 frame_time;
 #endif
-
 };
 
 #endif // BASE_PROFILE_H

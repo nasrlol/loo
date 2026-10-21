@@ -12,7 +12,7 @@
 //-
 
 typedef struct MemStackHeader MemStackHeader;
-typedef struct MemStack MemStack;
+typedef struct MemStack       MemStack;
 
 struct MemStackHeader {
     u8 padding;
@@ -21,9 +21,9 @@ struct MemStackHeader {
 
 struct MemStack {
     MemStackHeader *header;
-    u64 current_offset;
-    u64 capacity;
-    u8 *base_position; // TODO: why is this a (u8 *)?
+    u64             current_offset;
+    u64             capacity;
+    u8             *base_position; // TODO: why is this a (u8 *)?
 };
 
 //-
@@ -31,10 +31,10 @@ struct MemStack {
 internal MemStack *stack_push_align(MemStack *stack, u64 size, u8 alignment);
 internal MemStack *stack_resize_align(MemStack *stack, void *pointer, u64 old_size, u64 new_size,
                                       u8 alignment);
-internal void *stack_push(MemStack *stack, u64 size);
-internal void stack_pop(MemStack *stack, void *pointer);
-internal void stack_clear(MemStack *stack);
-internal u8 calculate_padding(u64 pointer, u8 alignment, u64 header_size);
+internal void     *stack_push(MemStack *stack, u64 size);
+internal void      stack_pop(MemStack *stack, void *pointer);
+internal void      stack_clear(MemStack *stack);
+internal u8        calculate_padding(u64 pointer, u8 alignment, u64 header_size);
 internal MemStack *arena_to_stack(MemArena *arena, u64 size, u64 alignment);
 
 

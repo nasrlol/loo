@@ -1,4 +1,7 @@
-internal b32 is_pow(umm x) { return (x & (x - 1)) == 0; }
+internal b32 is_pow(umm x)
+{
+    return (x & (x - 1)) == 0;
+}
 
 internal u64 align(u64 pointer, umm alignment)
 {

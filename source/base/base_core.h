@@ -57,6 +57,7 @@
 #define Min(a, b) (((a) < (b)) ? (a) : (b))
 #define Max(a, b) (((a) > (b)) ? (a) : (b))
 #define Clamp(value, low, high) Min(Max((value), (low)), (high))
+#define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
 #define Unused(x) (void)(x)
 #define Nil 0
@@ -105,23 +106,23 @@
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
-typedef uint8_t u8;
+typedef uint8_t  u8;
 
-typedef int8_t s8;
+typedef int8_t  s8;
 typedef int16_t s16;
 
 typedef int32_t s32;
 typedef int64_t s64;
 
-typedef float f32;
+typedef float  f32;
 typedef double f64;
 
 typedef s32 b32;
 typedef s16 b16;
-typedef s8 b8;
+typedef s8  b8;
 
 typedef uintptr_t umm;
-typedef intptr_t smm;
+typedef intptr_t  smm;
 
 //- disable certain msvc errors
 #if COMPILER_MSVC
@@ -130,28 +131,22 @@ typedef intptr_t smm;
 
 //-
 
-#define Assert(expression) do { \
+#define Assert(expression)   \
+    do {                     \
         if (!(expression)) { \
-            breakpoint(); \
-            Trap(); \
-        } \
-    } \
-    while(0)
+            breakpoint();    \
+            Trap();          \
+        }                    \
+    } while (0)
 
 // NOTE: apparantly in macros this strinifys whataever you put after the #
-#define AssertLog(expression, ...) do { \
-        if (!(expression)) { \
-            Log("%s:%d: %s\n", __FILE__, __LINE__, #expression); \
-            Log(__VA_ARGS__);\
-            Assert(false);\
-        }\
-    } \
-    while(0)
-
-
-
-
-
-
+#define AssertLog(expression, ...)                                                \
+    do {                                                                          \
+        if (!(expression)) {                                                      \
+            Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
+            Log(__VA_ARGS__);                                                     \
+            Assert(false);                                                        \
+        }                                                                         \
+    } while (0)
 
 #endif //  BASE_CORE_H

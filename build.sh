@@ -3,11 +3,12 @@ set -e
 
 date
 echo "author: Abdellah El Morabit"
+echo "Compiling Loo"
 echo
 
 BUILD_DIR=build
 SOURCE_DIR=source
-INCLUDES="-I${SOURCE_DIR}/loo -I${SOURCE_DIR} -I${SOURCE_DIR}/base"
+INCLUDES="-I${SOURCE_DIR}/loo -I${SOURCE_DIR} -I${SOURCE_DIR}/base -I${SOURCE_DIR}/render -I${SOURCE_DIR}/platform"
 CFLAGS="-fno-rtti -fno-exceptions -Wall -Wundef -Werror -fanalyzer -no-pie -Wno-unused-function -Wno-unused-variable -O0 "
 LIBS="-pthread "
 
@@ -19,15 +20,7 @@ X11=0
 
 if [ $WAYLAND -eq 1 ]; then
      CFLAGS+=" -DWAYLAND=1 -DX11=0"
-     LIBS+="-lwayland-client -lxkbcommon"
-
-# TODO: how often do we need the xdg protocol?
-     GENERATED_DIR="${BUILD_DIR}/generated"
-     XDG_SHELL_XML=/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
-     mkdir -p "$GENERATED_DIR"
-     wayland-scanner client-header "$XDG_SHELL_XML" "${GENERATED_DIR}/xdg-shell-client-protocol.h"
-     wayland-scanner private-code  "$XDG_SHELL_XML" "${GENERATED_DIR}/xdg-shell-protocol.c"
-     INCLUDES+=" -I${GENERATED_DIR}"
+     LIBS+="-lwayland-client"
 
 elif [ $X11 -eq 1 ]; then
     LIBS+=" -lX11"
@@ -47,3 +40,4 @@ mkdir -p "$BUILD_DIR"
 
 echo "Building ${BUILD_DIR}/loo..."
 g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -o "${BUILD_DIR}/loo" $LIBS
+"$(dirname "$0")/reload.sh"

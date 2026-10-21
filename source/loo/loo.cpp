@@ -1,75 +1,185 @@
-#define RENDER
 #include "base_include.h"
-#include "loo.h"
-
-internal void reload_loolib_worker(void *arg) {
-
-time_t original_mod_time = 0;
-while(true) {
-
-struct stat result = {0};
- int err = lstat("./librender.so", &result);
-AssertLog(err != 0, "Failed to get lstat when hotreloading");
-time_t current_mod_time = result.st_mtime;
-if(current_mod_time >= original_mod_time) {
-original_mod_time = current_mod_time; // NOTE: i know this isnt correct but there is no need to do an extra call for nothing
-			dlopen("./librender.so", RTLD_GLOBAL | RTLD_NOW);
-}
-
-sleep(1);
-}
-
-}
+#include "render_include.h"
+#include "platform_include.h"
+#include "loo_platform.h"
 
 
-internal void draw_square(WaylandState *state, Vec2 pos, s32 width, s32 height, RGB color) {
+// NOTE: the platform layer. owns main, the window, memory and the loop.
+// the game itself lives in state.so and is reloaded whenever it gets rebuilt.
 
- u32 *pixels = (u32 *)state->pixels;
+#define FRAMEBUFFER_WIDTH  1920
+#define FRAMEBUFFER_HEIGHT 1080
 
-s32 center_x = (s32)((pos.x + 1.0f) * 0.5f * state->width);
-    s32 center_y = (s32)((1.0f - pos.y) * 0.5f * state->height);
+//- game code reloading
 
-    s32 x0 = center_x - width / 2;
-    s32 y0 = center_y - height / 2;
-    s32 x1 = x0 + width;
-    s32 y1 = y0 + height;
+typedef struct GameCode GameCode;
+struct GameCode {
+    void *library;
+    struct timespec last_write_time;
+    GameUpdateAndRenderFn *update_and_render;
 
-    // clip to the framebuffer
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (x1 > (s32)state->width)  x1 = state->width;
-    if (y1 > (s32)state->height) y1 = state->height;
+    // NOTE: next to the executable, so it doesn't matter where loo is started from
+    char library_path[PATH_MAX];
+    char temp_path[PATH_MAX];
+    char lock_path[PATH_MAX];
+    };
 
-    u32 c = (color.r << 16) | (color.g << 8) | color.b;
+    internal void game_code_init_paths(GameCode *code) {
+    char exe_path[PATH_MAX] = {};
+    umm length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    AssertLog((length > 0), "failed to read /proc/self/exe\n");
 
-    for (s32 y = y0; y < y1; ++y) {
-        for (s32 x = x0; x < x1; ++x) {
-            pixels[y * state->width + x] = c;
-        }
+    {
+
+    String8 str8_temp_exe_path = str8(exe_path);
+    u64 slash_position = 0;
+    b32 found_slash = false;
+    while(!found_slash) {
+    found_slash = str8_find_needle(str8_temp_exe_path, 0, "/",  slash_position);
+    str8_temp_exe_path = str8_chop_left(str8_temp_exe_path, slash_position);
+    }
     }
 
-}
+    s32 written = 0;
+    written = snprintf(code->library_path, sizeof(code->library_path), "%s/loo_state.so", exe_path);
+    AssertLog((written > 0 && written < (s32)sizeof(code->library_path)), "game code path too long\n");
+    written = snprintf(code->temp_path, sizeof(code->temp_path), "%s/loo_state_temp.so", exe_path);
+    AssertLog((written > 0 && written < (s32)sizeof(code->temp_path)), "game code path too long\n");
+    written = snprintf(code->lock_path, sizeof(code->lock_path), "%s/loo_state.lock", exe_path);
+    AssertLog((written > 0 && written < (s32)sizeof(code->lock_path)), "game code path too long\n");
+    }
 
+    internal void game_code_reload_if_changed(MemArena *scratch_arena, GameCode *code) {
+    // build.sh / reload.sh hold this while the compiler is writing state.so
+    if (access(code->lock_path, F_OK) == 0) return;
 
-internal void render_frame(WaylandState *state) {
-Vec2 pos = Vec2(0, 0);
-      Entity o = { pos,  80, 80 };
+    struct stat info = {};
+    if (stat(code->library_path, &info) != 0) return;
 
-o.pos.x += 0.1;
-     draw_square(state, o.pos, o.width, o.height, RED);
-}
+    b32 changed = info.st_mtim.tv_sec  != code->last_write_time.tv_sec ||
+    info.st_mtim.tv_nsec != code->last_write_time.tv_nsec;
+    if (!changed) return;
 
+    // NOTE: remember the time even if loading fails, so a broken build isn't retried every frame
+    code->last_write_time = info.st_mtim;
 
-ENTRYPOINT()
-{
-    MemArena *arena = ArenaCreate(MiB(100));
-    Assert(arena);
+    if (code->library) {
+    dlclose(code->library);
+    code->library           = NULL;
+    code->update_and_render = NULL;
+    }
 
-     WindowParams params = {};
-     params.name = (cstring)"Loo";
+    ScratchArena scratch = scratch_start(scratch_arena);
+    String8 data = FileLoad(scratch.arena, str8(code->library_path));
+    // NOTE:
+    // unlink first so the copy is a new file, never a rewrite of one that's still mapped
+    unlink(code->temp_path);
+    b32 copied = data.size > 0 && FileWrite(data, str8(code->temp_path));
+    scratch_end(&scratch);
 
-EntityState *es = PushStruct(arena, EntityState);
-    PlatformWindowEntrypoint(arena, params);
+    if (!copied) {
+    Log("failed to copy %s\n", code->library_path);
+    return;
+    }
 
+    // TODO: make this platform generic
+    code->library = dlopen(code->temp_path, RTLD_NOW | RTLD_LOCAL);
+    if (!code->library) {
+    Log("failed to load game code: %s\n", dlerror());
+    return;
+    }
+
+    code->update_and_render = (GameUpdateAndRenderFn *)dlsym(code->library, GAME_UPDATE_AND_RENDER_SYMBOL);
+    if (!code->update_and_render) {
+    Log("game code has no %s: %s\n", GAME_UPDATE_AND_RENDER_SYMBOL, dlerror());
+    return;
+    }
+
+    Log("loaded game code\n");
+    }
+
+    //- input mapping
+
+    internal ButtonState button_from_platform(PlatformButton a, PlatformButton b) {
+    ButtonState result = {};
+    result.ended_down            = a.ended_down || b.ended_down;
+    result.half_transition_count = a.half_transition_count + b.half_transition_count;
+    return result;
+    }
+
+    internal GameInput game_input_from_platform(PlatformInput *platform, f32 dt) {
+    PlatformButton none = {};
+    GameInput input = {};
+    input.dt = dt;
+
+    input.move_up    = button_from_platform(platform->keys[KEY_W], platform->keys[KEY_UP]);
+    input.move_down  = button_from_platform(platform->keys[KEY_S], platform->keys[KEY_DOWN]);
+    input.move_left  = button_from_platform(platform->keys[KEY_A], platform->keys[KEY_LEFT]);
+    input.move_right = button_from_platform(platform->keys[KEY_D], platform->keys[KEY_RIGHT]);
+    input.action     = button_from_platform(platform->keys[KEY_SPACE], platform->keys[KEY_ENTER]);
+    input.back       = button_from_platform(platform->keys[KEY_BACKSPACE], none);
+
+    for (u32 i = 0; i < ArrayCount(input.mouse); ++i) {
+    input.mouse[i] = button_from_platform(platform->mouse[i], none);
+    }
+    input.mouse_x         = platform->mouse_x;
+    input.mouse_y         = platform->mouse_y;
+    input.mouse_in_window = platform->mouse_in_window;
+
+    return input;
+    }
+
+    //- entrypoint
+
+    ENTRYPOINT()
+    {
+    // NOTE: the game's memory, outlives every reload of state.so
+    MemArena *permanent = ArenaCreate(MiB(100));
+    MemArena *transient = ArenaCreate(MiB(100));
+    // NOTE: the platform's own memory (window state, framebuffer, reload scratch)
+    MemArena *platform_arena = ArenaCreate(MiB(100));
+    Assert(permanent && transient && platform_arena);
+
+    WindowParams params = {};
+    params.name = (cstring)"Loo";
+    PlatformWindow *window = PlatformWindowOpen(platform_arena, params);
+
+    FrameBuffer framebuffer = {};
+    framebuffer.width  = FRAMEBUFFER_WIDTH;
+    framebuffer.height = FRAMEBUFFER_HEIGHT;
+    framebuffer.pitch  = FRAMEBUFFER_WIDTH;
+    framebuffer.pixels = PushArrayZero(platform_arena, u32, FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT);
+
+    GameMemory memory = {};
+    memory.permanent = permanent;
+    memory.transient = transient;
+
+    GameCode code = {};
+    game_code_init_paths(&code);
+
+    // NOTE: fixed timestep from the monitor, we're vsynced to it through the frame callbacks
+    f32 dt = 1.0f / PlatformWindowRefreshHz(window);
+    Log("running at %.2f Hz\n", 1.0f / dt);
+
+    PlatformInput platform_input = {};
+    while (PlatformWindowPump(window, &platform_input)) {
+    // NOTE: no decorations, so this is the only way to close the window besides the compositor
+    if (platform_input.keys[KEY_ESC].ended_down || platform_input.keys[KEY_Q].ended_down) {
+    Log("quit key pressed\n");
+    break;
+    }
+
+    game_code_reload_if_changed(platform_arena, &code);
+
+    GameInput input = game_input_from_platform(&platform_input, dt);
+    arena_clear(memory.transient);
+    if (code.update_and_render) {
+    code.update_and_render(&memory, &input, &framebuffer);
+    }
+
+    PlatformWindowPresent(window, framebuffer.pixels, framebuffer.width, framebuffer.height);
+    }
+
+    PlatformWindowClose(window);
     return 0;
 }

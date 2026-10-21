@@ -1,5 +1,5 @@
-#ifndef BASE_RENDER
-#define BASE_RENDER
+#ifndef RENDER_VULKAN_H
+#define RENDER_VULKAN_H
 
 //- generic window description
 typedef struct WinParams WinParams;
@@ -24,4 +24,4 @@ struct Params {
 
 internal void vk_render_entrypoint(MemArena *arena, WinParams *engine, Params *window);
 
-#endif // BASE_RENDER
+#endif // RENDER_VULKAN_H

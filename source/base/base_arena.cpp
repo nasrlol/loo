@@ -12,7 +12,7 @@ unix_arena_create(u64 capacity)
                                        -1,
                                        0);
 
-    if(arena == MAP_FAILED) {
+    if (arena == MAP_FAILED) {
         return NULL;
     }
 
@@ -27,7 +27,7 @@ unix_arena_create(u64 capacity)
 internal void
 unix_arena_destroy(MemArena *arena)
 {
-    if(!arena) {
+    if (!arena) {
         return;
     }
 
@@ -43,7 +43,7 @@ win32_arena_create(u64 capacity)
                                                capacity + sizeof(MemArena),
                                                MEM_COMMIT | MEM_RESERVE,
                                                PAGE_READWRITE);
-    if(!arena) {
+    if (!arena) {
         return NULL;
     }
 
@@ -57,7 +57,7 @@ win32_arena_create(u64 capacity)
 internal void
 win32_arena_destroy(MemArena *arena)
 {
-    if(!arena) {
+    if (!arena) {
         return;
     }
 
@@ -75,7 +75,7 @@ arena_alloc(MemArena *arena, u64 size, b32 zero)
     u64 aligned = Align(arena->current_position, arena_align);
     u64 new_pos = aligned + size;
 
-    AssertLog((new_pos <= arena->capacity), "max arena capacity reached\n");
+    AssertLog((new_pos <= arena->capacity), "max arena capacity reached");
 
 
     void *out = arena->base_position + aligned;
@@ -83,7 +83,7 @@ arena_alloc(MemArena *arena, u64 size, b32 zero)
     arena->previous_position = arena->current_position;
     arena->current_position  = aligned + size;
 
-    if(zero) {
+    if (zero) {
         MemSetZero(out, size);
     }
 
@@ -115,16 +115,16 @@ arena_resize_block_align(MemArena *arena, void *old_memory, u64 new_size, u64 ol
 {
     u8 *old_mem = (u8 *)old_memory;
 
-    if(is_pow(alignment)) {
+    if (is_pow(alignment)) {
         arena->current_position = Align(arena->current_position, alignment);
     }
 
-    if(old_memory == NULL || old_size == 0) {
+    if (old_memory == NULL || old_size == 0) {
         return (MemArena *)arena_alloc(arena, new_size, 0);
-    } else if((old_mem >= arena->base_position && old_mem < arena->base_position + arena->current_position)) { // NOTE: does not find it self after the current position
-        if((arena->base_position + arena->previous_position) == old_memory) {
+    } else if ((old_mem >= arena->base_position && old_mem < arena->base_position + arena->current_position)) { // NOTE: does not find it self after the current position
+        if ((arena->base_position + arena->previous_position) == old_memory) {
             arena->current_position = arena->previous_position + new_size;
-            if(new_size > old_size) {
+            if (new_size > old_size) {
                 MemSetZero(old_mem + old_size, new_size - old_size);
             }
 
@@ -135,7 +135,7 @@ arena_resize_block_align(MemArena *arena, void *old_memory, u64 new_size, u64 ol
             memmove(new_memory, old_mem, copy_size);
         }
     } else {
-        AssertLog(false, "Failed to resize memory.\n");
+        AssertLog(false, "Failed to resize memory.");
     }
 
     return NULL;
@@ -162,4 +162,3 @@ scratch_end(ScratchArena *scratch)
 {
     scratch->arena->current_position = scratch->start_position;
 }
-

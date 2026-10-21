@@ -28,24 +28,12 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#ifndef X11
-#define X11 0
-#endif
-#ifndef WAYLAND
-#define WAYLAND 0
-#endif
-#ifndef VULKAN
-#define VULKAN 0
-#endif
-#ifndef OPENGL
-#define OPENGL 0
-#endif
 
 #if PLATFORM_UNIX
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/mman.h>
-#include <sys/socket.h> // needed for making a connection to displays (wayland)
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
 #include <fcntl.h>
@@ -53,33 +41,10 @@
 
 #include <pthread.h>
 
-#if PLATFORM_LINUX
-
-#include <linux/input-event-codes.h>
-
-#if X11
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
-#elif WAYLAND
-
-
-#include <wayland-client.h>
-#include "xdg-shell-client-protocol.h"
-#include <xkbcommon/xkbcommon.h>
-#endif
-
-#endif // PLATFORM_LINUX
 #elif PLATFORM_WINDOWS
 #define _WIN32_WINNT 0x0601
 #include <windows.h>
 #endif // PLATFORM_UNIX - PLATFORM_WINDOWS
-
-#if VULKAN
-// #include <vulkan/vulkan.h>
-#elif OPENGL
-...
-#endif
 
 //-
 #include <time.h>
@@ -88,6 +53,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <math.h>
 
 //-
 #include "base_core.h"
@@ -99,7 +65,6 @@
 #include "base_thread.h"
 #include "base_math.h"
 #include "base_platform.h"
-#include "base_render.h"
 
 #include "base_memory.cpp"
 #include "base_arena.cpp"
@@ -116,11 +81,5 @@
 
 #include "base_rand.cpp"
 #include "base_simd.cpp"
-
-
-#if VULKAN
-
-#include "base_render_vulkan.cpp"
-#endif
 
 #endif // BASE_INCLUDE_H

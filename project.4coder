@@ -19,11 +19,17 @@ blacklist_patterns = {
 paths = {
     { "./source/code", .relative = true, .recursive = true, },
     { "./source/base", .relative = true, .recursive = true, },
+    { "./source/platform", .relative = true, .recursive = true, },
+    { "./source/render", .relative = true, .recursive = true, },
+    { "./source/loo", .relative = true, .recursive = true, },
 };
 
 linux_paths = {
     { "./source/code", .relative = true, .recursive = true, },
     { "./source/base", .relative = true, .recursive = true, },
+    { "./source/platform", .relative = true, .recursive = true, },
+    { "./source/render", .relative = true, .recursive = true, },
+    { "./source/loo", .relative = true, .recursive = true, },
     { "/usr/include",        .relative = false, .recursive = false, },
     { "/usr/include/vulkan", .relative = false, .recursive = false, },
     { "/usr/include/X11",    .relative = false, .recursive = false, },
@@ -52,17 +58,9 @@ commands = {
         .save_dirty_files = true,
         .cursor_at_end    = true,
     },
-    .test_build = {
-        .linux            = "./test.sh",
-        .mac              = "./test.sh",
-        .out              = "*compilation*",
-        .footer_panel     = false,
-        .save_dirty_files = true,
-        .cursor_at_end    = true,
-    },
-    .test_run = {
-        .linux            = "setarch $(uname -m) -R ./build/test", // disables address randomization
-        .mac              = "./test/build",
+    .reload = {
+        .linux            = "./reload.sh",
+        .mac              = "./reload.sh",
         .out              = "*compilation*",
         .footer_panel     = false,
         .save_dirty_files = true,
@@ -73,6 +71,5 @@ commands = {
 fkey_command = {
     .F1 = "build",
     .F2 = "run",
-    .F3 = "test_build",
-    .F4 = "test_run",
+    .F3 = "reload",
 };

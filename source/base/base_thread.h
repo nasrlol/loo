@@ -4,26 +4,26 @@
 
 // platform agnostic thread buffer
 typedef struct Thread Thread;
-struct Thread
-{
- u32 id;
-u64 data[2];
- s32 input;
-s32 result;
+struct Thread {
+#if PLATFORM_LINUX
+    pthread_t id;
+#endif
+    u64 data[2];
+    s32 input;
+    s32 result;
 };
 
 
 typedef struct ThreadPool ThreadPool;
 struct ThreadPool {
- Thread *threads;
-u64 count;
+    Thread *threads;
+    u64     count;
 };
 
 
 //- os impementations for threading
 // note: keeping the implementation linux specific for now
 #if PLATFORM_LINUX
-
 
 typedef void (*ThreadProc)(void *arg);
 
@@ -45,7 +45,6 @@ internal void mutex_unlock();
 #else
 #error unsupported platform
 #endif
-
 
 
 #endif // BASE_THREAD_H
