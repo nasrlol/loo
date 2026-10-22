@@ -65,6 +65,7 @@
 #include "base_thread.h"
 #include "base_math.h"
 #include "base_platform.h"
+#include "base_profile.h"
 
 #include "base_memory.cpp"
 #include "base_arena.cpp"
@@ -72,6 +73,7 @@
 #include "base_string.cpp"
 #include "base_thread.cpp"
 #include "base_math.cpp"
+#include "base_profile.cpp"
 
 #if PLATFORM_LINUX
 #include "base_platform_linux.cpp"

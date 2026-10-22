@@ -7,18 +7,18 @@
 #define CheckSIMDNeon() do { CheckFPAdvSIMDEnabled64(); } while(0);
 internal void neon_compare_u8(u8 *a,u8 *b, u64 *out) {
 
-    if(!a || !b ) {
+ if(!a || !b ) {
 
-    u64 e = 0;
+ u64 e = 0;
 
-    umm size_a = sizeof(*a);
-    umm size_b = sizeof(*b);
+ umm size_a = sizeof(*a);
+ umm size_b = sizeof(*b);
 
-    b32 passed = false;
+ b32 passed = false;
 
-    u8x16 operand1 = vld1q_u8(a + e);   // V[n]
+ u8x16 operand1 = vld1q_u8(a + e);   // V[n]
 
-    }
+ }
 
 }
 

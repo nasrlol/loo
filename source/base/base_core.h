@@ -132,21 +132,21 @@ typedef intptr_t  smm;
 //-
 
 #define Assert(expression)   \
-    do {                     \
-        if (!(expression)) { \
-            breakpoint();    \
-            Trap();          \
-        }                    \
-    } while (0)
+do {                     \
+  if (!(expression)) { \
+  breakpoint();    \
+  Trap();          \
+  }                    \
+  } while (0)
 
-// NOTE: apparantly in macros this strinifys whataever you put after the #
-#define AssertLog(expression, ...)                                                \
-    do {                                                                          \
-        if (!(expression)) {                                                      \
-            Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
-            Log(__VA_ARGS__);                                                     \
-            Assert(false);                                                        \
-        }                                                                         \
-    } while (0)
+  // NOTE: apparantly in macros this strinifys whataever you put after the #
+  #define AssertLog(expression, ...)                                                \
+  do {                                                                          \
+  if (!(expression)) {                                                      \
+  Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
+  Log(__VA_ARGS__);                                                     \
+  Assert(false);                                                        \
+  }                                                                         \
+ } while (0)
 
 #endif //  BASE_CORE_H

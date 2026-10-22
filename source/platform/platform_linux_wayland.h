@@ -7,62 +7,62 @@
 // writing into a buffer the compositor is still reading is what causes tearing.
 typedef struct WaylandBuffer WaylandBuffer;
 struct WaylandBuffer {
-    struct wl_buffer *buffer;
-    u32 *pixels;
-    u32 width;
-    u32 height;
-    u32 size; // in bytes
-    b32 busy; // attached and not released by the compositor yet
-};
+ struct wl_buffer *buffer;
+ u32 *pixels;
+ u32 width;
+ u32 height;
+ u32 size; // in bytes
+ b32 busy; // attached and not released by the compositor yet
+ };
 
-typedef struct WaylandState WaylandState;
-struct WaylandState {
-    //- connection
-    struct wl_display  *display;
-    struct wl_registry *registry;
+ typedef struct WaylandState WaylandState;
+ struct WaylandState {
+ //- connection
+ struct wl_display  *display;
+ struct wl_registry *registry;
 
-    struct wl_compositor *compositor;
-    struct wl_shm        *shm;
-    struct xdg_wm_base   *xdg_wm_base;
-    struct wl_seat       *seat;
-    struct wl_output     *output; // NOTE: only the first output, used for the refresh rate
+ struct wl_compositor *compositor;
+ struct wl_shm        *shm;
+ struct xdg_wm_base   *xdg_wm_base;
+ struct wl_seat       *seat;
+ struct wl_output     *output; // NOTE: only the first output, used for the refresh rate
 
-    //- window objects
-    struct wl_surface   *surface;
-    struct xdg_surface  *xdg_surface;
-    struct xdg_toplevel *xdg_toplevel;
+ //- window objects
+ struct wl_surface   *surface;
+ struct xdg_surface  *xdg_surface;
+ struct xdg_toplevel *xdg_toplevel;
 
-    //- input
-    struct wl_keyboard *keyboard;
-    struct wl_pointer  *pointer;
-    PlatformInput input;            // mouse_x/y here are in window coordinates, pump converts them
-    f32 mouse_window_x, mouse_window_y;
+ //- input
+ struct wl_keyboard *keyboard;
+ struct wl_pointer  *pointer;
+ PlatformInput input;            // mouse_x/y here are in window coordinates, pump converts them
+ f32 mouse_window_x, mouse_window_y;
 
-    //- window size
-    // NOTE: width/height is the current window size. pending_* is what xdg_toplevel.configure
-    // asked for, it becomes current on xdg_surface.configure.
-    u32 width;
-    u32 height;
-    u32 pending_width;
-    u32 pending_height;
+ //- window size
+ // NOTE: width/height is the current window size. pending_* is what xdg_toplevel.configure
+ // asked for, it becomes current on xdg_surface.configure.
+ u32 width;
+ u32 height;
+ u32 pending_width;
+ u32 pending_height;
 
-    //- presenting
-    WaylandBuffer buffers[2];
-    u32 framebuffer_width;  // size of the last framebuffer that was presented
-    u32 framebuffer_height;
-    s32 view_x, view_y;     // where it ended up inside the window (letterboxed)
-    s32 view_width, view_height;
+ //- presenting
+ WaylandBuffer buffers[2];
+ u32 framebuffer_width;  // size of the last framebuffer that was presented
+ u32 framebuffer_height;
+ s32 view_x, view_y;     // where it ended up inside the window (letterboxed)
+ s32 view_width, view_height;
 
-    u32 refresh_mhz; // from wl_output.mode, 0 until known
+ u32 refresh_mhz; // from wl_output.mode, 0 until known
 
-    b32 configured;
-    b32 frame_ready;
-    b32 should_close;
-};
+ b32 configured;
+ b32 frame_ready;
+ b32 should_close;
+ };
 
-// NOTE: the platform agnostic handle, on wayland it's just the wayland state
-struct PlatformWindow {
-    WaylandState wayland;
+ // NOTE: the platform agnostic handle, on wayland it's just the wayland state
+ struct PlatformWindow {
+ WaylandState wayland;
 };
 
 //- public wayland  api

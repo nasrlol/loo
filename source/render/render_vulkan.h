@@ -4,22 +4,22 @@
 //- generic window description
 typedef struct WinParams WinParams;
 struct WinParams {
-    void *window_handle;
-    int width;
-    int height;
-    int display_x;
-    int display_y;
-    const char *name;
-};
+ void *window_handle;
+ int width;
+ int height;
+ int display_x;
+ int display_y;
+ const char *name;
+ };
 
 
-typedef struct Params Params;
-struct Params {
-    const char *name;
-    int width;
-    int height;
-    // VkExtensionProperties *vk_properties;
-    // VkInstance            *vk_instance;
+ typedef struct Params Params;
+ struct Params {
+ const char *name;
+ int width;
+ int height;
+ // VkExtensionProperties *vk_properties;
+ // VkInstance            *vk_instance;
 };
 
 internal void vk_render_entrypoint(MemArena *arena, WinParams *engine, Params *window);

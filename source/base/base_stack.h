@@ -15,15 +15,15 @@ typedef struct MemStackHeader MemStackHeader;
 typedef struct MemStack       MemStack;
 
 struct MemStackHeader {
-    u8 padding;
-    u8 previous_offset;
-};
+ u8 padding;
+ u8 previous_offset;
+ };
 
-struct MemStack {
-    MemStackHeader *header;
-    u64             current_offset;
-    u64             capacity;
-    u8             *base_position; // TODO: why is this a (u8 *)?
+ struct MemStack {
+ MemStackHeader *header;
+ u64             current_offset;
+ u64             capacity;
+ u8             *base_position; // TODO: why is this a (u8 *)?
 };
 
 //-
