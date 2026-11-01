@@ -47,16 +47,22 @@ internal void clamp_to_framebuffer(s32 width, s32 height, Vec2 *pos0, Vec2 *pos1
  memory->state = game;
  memory->is_initialized = true;
  }
+
  GameState *game = (GameState *)memory->state;
-
-draw_rect(fb, Vec2(1, 1), Vec2(3, 3), GREEN);
-
 
  MemSetZero(fb->pixels, (u64)fb->pitch * fb->height * sizeof(u32));
 
- Vec2 start = Vec2(0.1, 0.1);
- Vec2 end = Vec2(0.9, 0.9);
- draw_line(fb, start, end, BLACK);
+Vec2 pos0 = Vec2(100, 100);
+Vec2 pos1 = Vec2(300, 200);
+draw_rect(fb, pos0, pos1, GREEN);
+if(button_pressed(input->move_up)) {
+pos0.y = pos0.y++;
+pos1.y = pos0.y++;
+} else if(button_pressed(input->move_down)) {
+pos0.y = pos0.y--;
+pos1.y = pos1.y--;
+}
+
 
 }
  

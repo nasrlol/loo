@@ -4,9 +4,6 @@
 #include "loo_platform.h"
 
 
-// NOTE: the platform layer. owns main, the window, memory and the loop.
-// the game itself lives in state.so and is reloaded whenever it gets rebuilt.
-
 #define FRAMEBUFFER_WIDTH  1920
 #define FRAMEBUFFER_HEIGHT 1080
 
@@ -18,7 +15,6 @@ struct GameCode {
  struct timespec last_write_time;
  GameUpdateAndRenderFn *update_and_render;
 
- // NOTE: next to the executable, so it doesn't matter where loo is started from
  char library_path[PATH_MAX];
  char temp_path[PATH_MAX];
  char lock_path[PATH_MAX];
@@ -28,16 +24,9 @@ struct GameCode {
  char exe_path[PATH_MAX] = {};
   u64 length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
  AssertLog((length > 0), "failed to read /proc/self/exe\n");
-
- {
  String8 path = str8(exe_path);
  u64 slash_position = 0;
-if(str8_find_last(&path, str8("/"), &slash_position)) {
-exe_path[slash_position] = 0;
-}
- 
- }
-
+if(str8_find_last(&path, str8("/"), &slash_position)) { exe_path[slash_position] = 0; }
  s32 written = 0;
  written = snprintf(code->library_path, sizeof(code->library_path), "%s/loo_state.so", exe_path);
  AssertLog((written > 0 && written < (s32)sizeof(code->library_path)), "game code path too long\n");
@@ -48,7 +37,6 @@ exe_path[slash_position] = 0;
  }
 
  internal void game_code_reload_if_changed(Arena *scratch_arena, GameCode *code) {
- // build.sh / reload.sh hold this while the compiler is writing state.so
  if (access(code->lock_path, F_OK) == 0) return;
 
  struct stat info = {};
@@ -58,7 +46,6 @@ exe_path[slash_position] = 0;
  info.st_mtim.tv_nsec != code->last_write_time.tv_nsec;
  if (!changed) return;
 
- // NOTE: remember the time even if loading fails, so a broken build isn't retried every frame
  code->last_write_time = info.st_mtim;
 
  if (code->library) {
@@ -69,8 +56,6 @@ exe_path[slash_position] = 0;
 
  ScratchArena scratch = scratch_start(scratch_arena);
  String8 data = FileLoad(scratch.arena, str8(code->library_path));
- // NOTE:
- // unlink first so the copy is a new file, never a rewrite of one that's still mapped
  unlink(code->temp_path);
  b32 copied = data.size > 0 && FileWrite(data, str8(code->temp_path));
  scratch_end(&scratch);
@@ -80,7 +65,6 @@ exe_path[slash_position] = 0;
  return;
  }
 
- // TODO: make this platform generic
  code->library = dlopen(code->temp_path, RTLD_NOW | RTLD_LOCAL);
  if (!code->library) {
  Log("failed to load game code: %s\n", dlerror());
@@ -120,6 +104,7 @@ exe_path[slash_position] = 0;
  for (u32 i = 0; i < ArrayCount(input.mouse); ++i) {
  input.mouse[i] = button_from_platform(platform->mouse[i], none);
  }
+
  input.mouse_x         = platform->mouse_x;
  input.mouse_y         = platform->mouse_y;
  input.mouse_in_window = platform->mouse_in_window;
@@ -131,10 +116,8 @@ exe_path[slash_position] = 0;
 
  ENTRYPOINT()
  {
- // NOTE: the game's memory, outlives every reload of state.so
  Arena *permanent = ArenaCreate(MiB(100));
  Arena *transient = ArenaCreate(MiB(100));
- // NOTE: the platform's own memory (window state, framebuffer, reload scratch)
  Arena *platform_arena = ArenaCreate(MiB(100));
  Assert(permanent && transient && platform_arena);
 
@@ -155,15 +138,10 @@ exe_path[slash_position] = 0;
  GameCode code = {};
  game_code_init_paths(&code);
 
- // NOTE: fixed timestep from the monitor, we're vsynced to it through the frame callbacks
  f32 dt = 1.0f / PlatformWindowRefreshHz(window);
- Log("running at %.2f Hz\n", 1.0f / dt);
-
  PlatformInput platform_input = {};
  while (PlatformWindowPump(window, &platform_input)) {
- // NOTE: no decorations, so this is the only way to close the window besides the compositor
  if (platform_input.keys[KEY_ESC].ended_down || platform_input.keys[KEY_Q].ended_down) {
- Log("quit key pressed\n");
  break;
  }
 
