@@ -22,6 +22,6 @@ struct WinParams {
  // VkInstance            *vk_instance;
 };
 
-internal void vk_render_entrypoint(MemArena *arena, WinParams *engine, Params *window);
+internal void vk_render_entrypoint(Arena *arena, WinParams *engine, Params *window);
 
 #endif // RENDER_VULKAN_H

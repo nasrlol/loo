@@ -1,14 +1,6 @@
 #ifndef BASE_STACK_H
 #define BASE_STACK_H
 
-#if defined(PLATFORM_UNIX)
-#define StackCreate(size) unix_stack_create(size)
-#define StackDestroy(stack) unix_stack_destroy(stack)
-#elif defined(PLATFORM_WINDOWS)
-#define StackCreate(size) win32_stack_create(size)
-#define StackDestroy(stack) win32_stack_destroy(stack)
-#endif
-
 //-
 
 typedef struct MemStackHeader MemStackHeader;

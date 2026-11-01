@@ -1,5 +1,5 @@
 #ifdef X11 // @compile param
-internal LinuxWindowHandle x11_create_window(MemArena *arena, u32 window_height, u32 window_width,
+internal LinuxWindowHandle x11_create_window(Arena *arena, u32 window_height, u32 window_width,
                                              u32 display_x, u32 display_y)
 {
 

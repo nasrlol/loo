@@ -88,17 +88,23 @@ return ((char)buffer.data[0] == ' ');
 }
 
 internal b32 str8_find_needle(String8 *buffer, u64 start_pos, u8 *needle, u64 *pos) {
- for(u64 index = 0; index < buffer->size; ++index) {
-
-  if(CstringIsMatch((buffer->data), needle)) {
-   *pos = index;
-   return true;
-  } else {
-   ++buffer->data;
-  }
-
+return str8_find(buffer, start_pos, str8(needle), pos);
  }
- return false;
+
+internal b32 str8_find_last(String8 *buffer, String8 element, u64 *out) {
+
+if(element.size == 0 || element.size > buffer->size) {
+return false;
+}
+
+for(u64 index = buffer->size - element.size + 1; index > 0; --index) {
+if(memcmp(buffer->data + index - 1, element.data, element.size) == 0) {
+*out = index - 1;
+return true;
+}
+}
+return false;
+
 }
 
 internal b32 str8_find_all(Arena *arena, String8 *buffer, u64 start_pos, String8 element, String8List *out)

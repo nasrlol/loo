@@ -1,4 +1,4 @@
-internal String8 unix_get_env(const char *var)
+internal String8 linux_get_env(const char *var)
 {
  AssertLog(environ, "Environment not loaded");
 
@@ -27,7 +27,7 @@ internal String8 unix_get_env(const char *var)
 
 
 //-
-internal SharedLibrary unix_load_shared_library(Arena *arena, cstring name)
+internal SharedLibrary linux_load_shared_library(Arena *arena, cstring name)
 {
  SharedLibrary lib  = {0};
  void         *data = dlopen(name, RTLD_LAZY | RTLD_LOCAL);
@@ -36,13 +36,13 @@ internal SharedLibrary unix_load_shared_library(Arena *arena, cstring name)
  return lib;
 }
 
-internal void *unix_shared_library_get_proc_from_name(SharedLibrary *library, const char *name)
+internal void *linux_shared_library_get_proc_from_name(SharedLibrary *library, const char *name)
 {
  void *symbol = dlsym(library->mem, name);
  return symbol;
 }
 
-internal int unix_shared_library_close(SharedLibrary *library)
+internal int linux_shared_library_close(SharedLibrary *library)
 {
  int result = dlclose(library);
  AssertLog(result, "failed to close the library");
@@ -51,12 +51,12 @@ internal int unix_shared_library_close(SharedLibrary *library)
 }
 
 //- implementations
-internal b32 unix_file_exists(String8 path)
+internal b32 linux_file_exists(String8 path)
 {
  return access((const char *)path.data, F_OK) == 0;
 }
 
-internal b32 unix_relative_path(Arena *arena, String8 *path)
+internal b32 linux_relative_path(Arena *arena, String8 *path)
 {
  String8 forward_slash    = str8("./");
  b32     insertion_result = str8_insert(arena, path, &forward_slash, 0);
@@ -66,7 +66,7 @@ internal b32 unix_relative_path(Arena *arena, String8 *path)
  return insertion_result;
 }
 
-internal String8 unix_file_load(Arena *arena, String8 path)
+internal String8 linux_file_load(Arena *arena, String8 path)
 {
  if(path.size <= 0) {
   Log("Can't find the file we we're supposed to open. This is an issue because we we're supposed to break way earlier");
@@ -121,7 +121,7 @@ internal String8 unix_file_load(Arena *arena, String8 path)
 }
 
 // TODO: why was this returning a str8 before?
-internal b32 unix_file_write(String8 data, String8 path)
+internal b32 linux_file_write(String8 data, String8 path)
 {
  s32 file = open((const char *)path.data, O_WRONLY | O_CREAT | O_TRUNC, 0644);
  if(file == -1) {
@@ -142,7 +142,7 @@ internal b32 unix_file_write(String8 data, String8 path)
  return true;
 }
 
-internal void unix_log_with_args(const char *format, ...)
+internal void linux_log_with_args(const char *format, ...)
 {
  va_list arguments;
  va_start(arguments, format);
@@ -154,7 +154,7 @@ internal void unix_log_with_args(const char *format, ...)
 
 
 // TODO: rewrite this
-internal String8List *unix_open_dir(Arena *arena, String8 *path)
+internal String8List *linux_open_dir(Arena *arena, String8 *path)
 {
  String8List *files_list = PushStructZero(arena, String8List);
  files_list->first       = &nil_str8_node;

@@ -30,4 +30,4 @@ touch "$LOCK_FILE"
 trap 'rm -f "$LOCK_FILE"' EXIT
 
 echo "Building ${BUILD_DIR}/state.so..."
-g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo_state.cpp" $SOFLAGS -fuse-ld=mold -o "${BUILD_DIR}/loo_state.so"
+time g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo_state.cpp" $SOFLAGS -fuse-ld=mold -o "${BUILD_DIR}/loo_state.so"

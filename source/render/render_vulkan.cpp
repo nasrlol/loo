@@ -2,7 +2,7 @@
 #define VK_NO_PROTOTYPES
 
 internal void
-vk_render_entrypoint(MemArena *arena, WinParams *window, Params *params)
+vk_render_entrypoint(Arena *arena, WinParams *window, Params *params)
 {
 
  // NOTE: requires #define VK_NO_PROTOTYPES

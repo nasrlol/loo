@@ -39,5 +39,5 @@ fi
 mkdir -p "$BUILD_DIR"
 
 echo "Building ${BUILD_DIR}/loo..."
-g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -fuse-ld=mold -o "${BUILD_DIR}/loo" $LIBS
+time  g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -fuse-ld=mold -o "${BUILD_DIR}/loo" $LIBS
 "$(dirname "$0")/reload.sh"

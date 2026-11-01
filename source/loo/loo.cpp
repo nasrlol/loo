@@ -26,18 +26,16 @@ struct GameCode {
 
  internal void game_code_init_paths(GameCode *code) {
  char exe_path[PATH_MAX] = {};
- umm length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+  u64 length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
  AssertLog((length > 0), "failed to read /proc/self/exe\n");
 
  {
-
- String8 str8_temp_exe_path = str8(exe_path);
+ String8 path = str8(exe_path);
  u64 slash_position = 0;
- b32 found_slash = false;
- while(!found_slash) {
- found_slash = str8_find_needle(&str8_temp_exe_path, 0, (u8 *)"/",  &slash_position);
- str8_temp_exe_path = str8_chop_left(str8_temp_exe_path, slash_position);
- }
+if(str8_find_last(&path, str8("/"), &slash_position)) {
+exe_path[slash_position] = 0;
+}
+ 
  }
 
  s32 written = 0;
@@ -49,7 +47,7 @@ struct GameCode {
  AssertLog((written > 0 && written < (s32)sizeof(code->lock_path)), "game code path too long\n");
  }
 
- internal void game_code_reload_if_changed(MemArena *scratch_arena, GameCode *code) {
+ internal void game_code_reload_if_changed(Arena *scratch_arena, GameCode *code) {
  // build.sh / reload.sh hold this while the compiler is writing state.so
  if (access(code->lock_path, F_OK) == 0) return;
 
@@ -134,10 +132,10 @@ struct GameCode {
  ENTRYPOINT()
  {
  // NOTE: the game's memory, outlives every reload of state.so
- MemArena *permanent = ArenaCreate(MiB(100));
- MemArena *transient = ArenaCreate(MiB(100));
+ Arena *permanent = ArenaCreate(MiB(100));
+ Arena *transient = ArenaCreate(MiB(100));
  // NOTE: the platform's own memory (window state, framebuffer, reload scratch)
- MemArena *platform_arena = ArenaCreate(MiB(100));
+ Arena *platform_arena = ArenaCreate(MiB(100));
  Assert(permanent && transient && platform_arena);
 
  WindowParams params = {};

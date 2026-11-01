@@ -43,7 +43,7 @@ patterns = {
 
  commands = {
  .build = {
- .linux            = "./build.sh",
+.linux            = "./build.sh",
  .mac              = "./build.sh",
  .out              = "*compilation*",
  .footer_panel     = false,

@@ -35,18 +35,8 @@ internal void clamp_to_framebuffer(s32 width, s32 height, Vec2 *pos0, Vec2 *pos1
 
  row[x] = c;
  }
-
  }
  }
-
-
- internal void draw_game_player() {
-
-
-
-
- }
-
 
  extern "C" GAME_UPDATE_AND_RENDER(game_update_and_render) {
 
@@ -59,6 +49,9 @@ internal void clamp_to_framebuffer(s32 width, s32 height, Vec2 *pos0, Vec2 *pos1
  }
  GameState *game = (GameState *)memory->state;
 
+draw_rect(fb, Vec2(1, 1), Vec2(3, 3), GREEN);
+
+
  MemSetZero(fb->pixels, (u64)fb->pitch * fb->height * sizeof(u32));
 
  Vec2 start = Vec2(0.1, 0.1);
@@ -66,3 +59,4 @@ internal void clamp_to_framebuffer(s32 width, s32 height, Vec2 *pos0, Vec2 *pos1
  draw_line(fb, start, end, BLACK);
 
 }
+ 

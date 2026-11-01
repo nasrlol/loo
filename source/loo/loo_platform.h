@@ -41,8 +41,8 @@ struct FrameBuffer {
 
  struct GameMemory {
  b32 is_initialized;
- MemArena *permanent;
- MemArena *transient;
+ Arena *permanent;
+ Arena *transient;
  void *state;
 };
 

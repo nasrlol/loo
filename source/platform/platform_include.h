@@ -20,6 +20,7 @@
 #include <X11/keysym.h>
 #elif WAYLAND
 #include <wayland-client.h>
+#include <poll.h>
 #endif
 
 #endif // PLATFORM_LINUX
@@ -28,8 +29,10 @@
 #include "platform.h"
 
 #if PLATFORM_LINUX
+#include "platform_linux.h"
 
 #if X11
+#include "platform_linux_x11.h"
 #include "platform_linux_x11.cpp"
 #elif WAYLAND
 #include "platform_linux_wayland.h"
@@ -38,6 +41,7 @@
 #endif
 
 #elif PLATFORM_WINDOWS
+#include "platform_win32.h"
 #include "platform_win32.cpp"
 #endif
 
