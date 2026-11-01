@@ -74,6 +74,7 @@
 #include "base_thread.cpp"
 #include "base_math.cpp"
 #include "base_profile.cpp"
+#include "base_simd.cpp"
 
 #if PLATFORM_LINUX
 #include "base_platform_linux.cpp"
@@ -82,6 +83,5 @@
 #endif
 
 #include "base_rand.cpp"
-#include "base_simd.cpp"
 
 #endif // BASE_INCLUDE_H

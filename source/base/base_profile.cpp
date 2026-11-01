@@ -1,37 +1,28 @@
-// [] x amount of memory used through out the time
-// [] delta time
-// [] cpu cycles
-
-
-
-internal Profile *
-linux_start_profile(MemArena *arena, void *callback) {
-
+#if ARCH_x86_64
+internal Profile *x86_start_profile(Arena *arena, void (*callback)(), void *callback_arg)
+{
  ScratchArena scratch = scratch_start(arena);
- Profile *profile = PushStruct(arena , Profile);
- u64 start, end = 0;
+Unused(scratch);
+ u64 start_high, start_low, end_high, end_low;
 
- u32 cylcles_low, cycles_high, clycles_low1, cycles_high1;
- GetCycles(cycles_high, cycles_low);
+ // GetCycles(start_high, start_low);
 
- &callback;
- GetCycles(cycles_high1, cycles_low1);
+ Profile *p = PushStruct(arena, Profile);
+ p->start = start_high - start_low;
+ callback(arg);
 
- start = ( ((u64)cycles_high << 32)   | cycles_low );
- end   = ( ((u64)cycles_high1 << 32)  | cycles_low1 );
-
- profile.start        = start;
- profile.end          = end;
- profile.cycles_sec   = end - start;
-
- return(profile);
- }
-
-
- internal void
- end_profile(Profile *profile, ScratchArena *scratch)
- {
- Log("outputting profiling results");
+ // GetCycles(end_high, end_low);
+ p->end = end_high - end_low;
+ return p;
+// do the logging inline
+{
+ Log("log the profile or something");
+}
  scratch_end(scratch);
 }
 
+#elif ARCH_ARM
+
+#else
+#error platform not supported for profiling
+#endif

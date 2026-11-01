@@ -129,23 +129,53 @@ typedef intptr_t  smm;
 #pragma warning(disable : 6246) // disable the same name within a certain scope
 #endif
 
+
+
 //-
 
-#define Assert(expression)   \
-do {                     \
-  if (!(expression)) { \
-  breakpoint();    \
-  Trap();          \
-  }                    \
-  } while (0)
 
-  // NOTE: apparantly in macros this strinifys whataever you put after the #
-  #define AssertLog(expression, ...)                                                \
-  do {                                                                          \
-  if (!(expression)) {                                                      \
-  Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
-  Log(__VA_ARGS__);                                                     \
-  Assert(false);                                                        \
+#define FOR_NODE(list, root, type, current, next, nil_node) \
+for(type *current = list->root;                  \
+ (current != NULL) || (current != &nil_node); \
+ current = current->next)
+
+
+//-
+
+
+#if 0
+// TODO: to_str8 using format specifiers
+
+typedef struct LogList LogList;
+struct LogList {
+cstring *root;
+cstring *current;
+};
+
+#define LogPush(list, log)
+#define LogPop(list)
+#define LogRemove(list, log)
+
+#define LogLogList(list)
+
+#endif
+
+
+#define Assert(expression)   \
+ do {                     \
+  if(!(expression)) { \
+   breakpoint();    \
+   Trap();          \
+  }                    \
+ } while (0)
+
+// NOTE: apparantly in macros this strinifys whataever you put after the #
+#define AssertLog(expression, ...)                                                \
+ do {                                                                          \
+  if(!(expression)) {                                                      \
+   Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
+   Log(__VA_ARGS__);                                                     \
+   Assert(false);                                                        \
   }                                                                         \
  } while (0)
 
