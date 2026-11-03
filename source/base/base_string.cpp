@@ -497,7 +497,7 @@ internal u64 cstring16_length(u16 *c)
   return 0;
  for(; *c != 0; ++c)
  ;
- return (u64)(p - c);
+ return (u64)(c - p);
 }
 
 internal u64 cstring32_length(u32 *c)

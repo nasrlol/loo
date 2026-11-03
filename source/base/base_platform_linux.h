@@ -25,13 +25,12 @@ struct Directory {
  String8List *file_names;
 };
 
-#define LinuxLoadSharedLibrary(arena, name) linux_load_shared_library(arena, name)
-#define LoadSharedLibrary (arena, name) LinuxLoadSharedLibrary(arena, name)
+#define LoadSharedLibrary(arena, name) linux_load_shared_library(arena, name)
 #define PlatformGetCurrentTime(format) linux_get_current_time(format)
 
 //- Shared libraries
 internal void *linux_shared_library_get_proc_from_name(SharedLibrary *library, const char *name);
-internal void  linux_load_shared_library(Arena *arena);
+internal SharedLibrary linux_load_shared_library(Arena *arena, String8 path);
 internal int   linux_shared_library_close(SharedLibrary *library);
 
 internal String8 linux_get_env(const char *var);
@@ -49,10 +48,13 @@ internal void linux_os_exit() __attribute__((noreturn));
 internal s64  linux_log(int fd, const void *buf, u64 count);
 internal void linux_log_with_args(const char *format, ...);
 
+
 #define FileLoad(arena, path) linux_file_load(arena, path)
 #define FileWrite(data, path) linux_file_write(data, path)
 #define FileExists(path) linux_file_exists(path)
 #define DirLoadFileNames(arena, path) linux_open_dir(arena, path)
+#define ReadSelf(arena) linux_read_self(arena)
+#define FileDelete(arena, path) linux_delete_file(arena, path)
 
 #if DEBUG
 #define OSExit(code) _exit(code)

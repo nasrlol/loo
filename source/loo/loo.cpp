@@ -11,36 +11,41 @@
 
 typedef struct GameCode GameCode;
 struct GameCode {
- void *library;
+ SharedLibrary *library;
  struct timespec last_write_time;
  GameUpdateAndRenderFn *update_and_render;
-
- char library_path[PATH_MAX];
- char temp_path[PATH_MAX];
- char lock_path[PATH_MAX];
+  String8 library_path;
+  String8 temp_path;
+  String8 lock_path;
  };
 
  internal void game_code_init_paths(GameCode *code) {
- char exe_path[PATH_MAX] = {};
-  u64 length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
- AssertLog((length > 0), "failed to read /proc/self/exe\n");
- String8 path = str8(exe_path);
+
+String8 path = ReadSelf();
  u64 slash_position = 0;
-if(str8_find_last(&path, str8("/"), &slash_position)) { exe_path[slash_position] = 0; }
- s32 written = 0;
- written = snprintf(code->library_path, sizeof(code->library_path), "%s/loo_state.so", exe_path);
- AssertLog((written > 0 && written < (s32)sizeof(code->library_path)), "game code path too long\n");
- written = snprintf(code->temp_path, sizeof(code->temp_path), "%s/loo_state_temp.so", exe_path);
- AssertLog((written > 0 && written < (s32)sizeof(code->temp_path)), "game code path too long\n");
- written = snprintf(code->lock_path, sizeof(code->lock_path), "%s/loo_state.lock", exe_path);
- AssertLog((written > 0 && written < (s32)sizeof(code->lock_path)), "game code path too long\n");
+
+if(str8_find_last(&path, str8("/"), &slash_position)) {
+str8_chop_right(path, path.size - slash_position);
+path.data[slash_position] = 0;
+}
+
+	str8_append(&code->library_path, path);
+	str8_append(&code->library_path, str8("loo_state.so"));
+	
+	str8_append(&code->temp_path, path);
+	str8_append(&code->temp_path, str8("loo_state_temp.so"));
+	
+	str8_append(&code->lock_path, path);
+	str8_append(&code->lock_path, str8("loo_state.lock"));
  }
 
- internal void game_code_reload_if_changed(Arena *scratch_arena, GameCode *code) {
- if (access(code->lock_path, F_OK) == 0) return;
+ internal void game_code_reload_if_changed(Arena *arena, GameCode *code) {
+b32 lock_file_exists = FileExists(code->lock_path);
+Assert(lock_file_exists);
+
 
  struct stat info = {};
- if (stat(code->library_path, &info) != 0) return;
+ if (stat(null_terminate(arena, &code->library_path), &info) != 0) return;
 
  b32 changed = info.st_mtim.tv_sec  != code->last_write_time.tv_sec ||
  info.st_mtim.tv_nsec != code->last_write_time.tv_nsec;
@@ -54,10 +59,10 @@ if(str8_find_last(&path, str8("/"), &slash_position)) { exe_path[slash_position]
  code->update_and_render = NULL;
  }
 
- ScratchArena scratch = scratch_start(scratch_arena);
- String8 data = FileLoad(scratch.arena, str8(code->library_path));
- unlink(code->temp_path);
- b32 copied = data.size > 0 && FileWrite(data, str8(code->temp_path));
+ ScratchArena scratch = scratch_start(arena);
+ String8 data = FileLoad(scratch.arena, code->library_path);
+FileDelete(arena, code->temp_path);
+ b32 copied = data.size > 0 && FileWrite(data, code->temp_path);
  scratch_end(&scratch);
 
  if (!copied) {
@@ -65,7 +70,7 @@ if(str8_find_last(&path, str8("/"), &slash_position)) { exe_path[slash_position]
  return;
  }
 
- code->library = dlopen(code->temp_path, RTLD_NOW | RTLD_LOCAL);
+ code->library = LoadSharedLibrary(arena, code->temp_path);
  if (!code->library) {
  Log("failed to load game code: %s\n", dlerror());
  return;

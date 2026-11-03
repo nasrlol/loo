@@ -27,11 +27,13 @@ internal String8 linux_get_env(const char *var)
 
 
 //-
-internal SharedLibrary linux_load_shared_library(Arena *arena, cstring name)
+internal SharedLibrary linux_load_shared_library(Arena *arena, String8 path)
 {
  SharedLibrary lib  = {0};
- void         *data = dlopen(name, RTLD_LAZY | RTLD_LOCAL);
- AssertLog(data, "failed to load shared object %s", name); // Assert and print the error that get's reported to dlerror
+ScratchArena scratch = scratch_start(arena);
+ void *data = dlopen(null_terminate(arena, &path), RTLD_LAZY | RTLD_LOCAL);
+ AssertLog(data, "failed to load shared object " Str8Fmt, path); // Assert and print the error that get's reported to dlerror
+scratch_end(&scratch);
  lib.mem = data;
  return lib;
 }
@@ -51,9 +53,23 @@ internal int linux_shared_library_close(SharedLibrary *library)
 }
 
 //- implementations
-internal b32 linux_file_exists(String8 path)
+internal b32 linux_file_exists(Arena *arena, String8 path)
 {
- return access((const char *)path.data, F_OK) == 0;
+ScratchArena scratch = scratch_start(arena);
+cstring null_terminated_path = null_terminate(arena, &path);
+   b32 ok = (access(null_terminated_path, F_OK) == 0);
+scratch_end(&scratch);
+return ok;
+}
+
+internal b32 linux_delete_file(Arena *arena, String8 path) {
+ScratchArena scratch = scratch_start(arena);
+int ok = unlink(null_terminate(arena, &path));
+if(ok == 0) {
+return true;
+}
+scratch_end(&scratch);
+return false;
 }
 
 internal b32 linux_relative_path(Arena *arena, String8 *path)
@@ -150,6 +166,13 @@ internal void linux_log_with_args(const char *format, ...)
  putc('\n', stdout);
  fflush(stdout);
  va_end(arguments);
+}
+
+internal String8 linux_read_self() {
+	char exe_path[PATH_MAX] = {};
+	u64 length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+	AssertLog((length > 0), "failed to read /proc/self/exe\n");
+return str8(exe_path);
 }
 
 
