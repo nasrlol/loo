@@ -56,11 +56,11 @@ Vec2 pos0 = Vec2(100, 100);
 Vec2 pos1 = Vec2(300, 200);
 draw_rect(fb, pos0, pos1, GREEN);
 if(button_pressed(input->move_up)) {
-pos0.y = pos0.y++;
-pos1.y = pos0.y++;
+pos0.y++;
+pos1.y++;
 } else if(button_pressed(input->move_down)) {
-pos0.y = pos0.y--;
-pos1.y = pos1.y--;
+pos0.y--;
+pos1.y--;
 }
 
 

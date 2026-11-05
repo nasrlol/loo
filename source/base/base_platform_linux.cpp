@@ -31,7 +31,7 @@ internal SharedLibrary linux_load_shared_library(Arena *arena, String8 path)
 {
  SharedLibrary lib  = {0};
 ScratchArena scratch = scratch_start(arena);
- void *data = dlopen(null_terminate(arena, &path), RTLD_LAZY | RTLD_LOCAL);
+ void *data = dlopen(null_terminate(scratch.arena, &path), RTLD_LAZY | RTLD_LOCAL);
  AssertLog(data, "failed to load shared object " Str8Fmt, path); // Assert and print the error that get's reported to dlerror
 scratch_end(&scratch);
  lib.mem = data;
@@ -41,13 +41,15 @@ scratch_end(&scratch);
 internal void *linux_shared_library_get_proc_from_name(SharedLibrary *library, const char *name)
 {
  void *symbol = dlsym(library->mem, name);
+AssertLog(symbol, "failed to load symbol %s: %s", name, dlerror());
  return symbol;
 }
 
 internal int linux_shared_library_close(SharedLibrary *library)
 {
- int result = dlclose(library);
- AssertLog(result, "failed to close the library");
+ int result = dlclose(library->mem);
+ AssertLog(result == 0, "failed to close the library: %s", dlerror());
+library->mem = NULL;
 
  return result;
 }
@@ -56,7 +58,7 @@ internal int linux_shared_library_close(SharedLibrary *library)
 internal b32 linux_file_exists(Arena *arena, String8 path)
 {
 ScratchArena scratch = scratch_start(arena);
-cstring null_terminated_path = null_terminate(arena, &path);
+cstring null_terminated_path = null_terminate(scratch.arena, &path);
    b32 ok = (access(null_terminated_path, F_OK) == 0);
 scratch_end(&scratch);
 return ok;
@@ -64,12 +66,9 @@ return ok;
 
 internal b32 linux_delete_file(Arena *arena, String8 path) {
 ScratchArena scratch = scratch_start(arena);
-int ok = unlink(null_terminate(arena, &path));
-if(ok == 0) {
-return true;
-}
+int ok = unlink(null_terminate(scratch.arena, &path));
 scratch_end(&scratch);
-return false;
+return (ok == 0);
 }
 
 internal b32 linux_relative_path(Arena *arena, String8 *path)
@@ -98,9 +97,11 @@ internal String8 linux_file_load(Arena *arena, String8 path)
  }
 
 
- const char *null_terminated_path = null_terminate(arena, &path);
+ ScratchArena scratch              = scratch_start(arena);
+ const char  *null_terminated_path = null_terminate(scratch.arena, &path);
 
  s32 file = open(null_terminated_path, O_RDONLY);
+ scratch_end(&scratch);
  if(file == -1) {
   Log("File was not loaded: " Str8Fmt "", Str8Arg(path));
   return str8_zero();
@@ -168,25 +169,31 @@ internal void linux_log_with_args(const char *format, ...)
  va_end(arguments);
 }
 
-internal String8 linux_read_self() {
+internal String8 linux_read_self(Arena *arena) {
 	char exe_path[PATH_MAX] = {};
-	u64 length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+	ssize_t length = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
 	AssertLog((length > 0), "failed to read /proc/self/exe\n");
-return str8(exe_path);
+	String8 view = {(u8 *)exe_path, (u64)length};
+return str8_clone(arena, &view);
 }
 
 
 // TODO: rewrite this
 internal String8List *linux_open_dir(Arena *arena, String8 *path)
 {
+ ScratchArena scratch = scratch_start(arena);
+ cstring      cpath   = null_terminate(scratch.arena, path);
+ DIR         *dir     = opendir(cpath);
+ if(!dir) {
+  Log("opendir(%s) failed", cpath);
+ }
+ scratch_end(&scratch);
+
  String8List *files_list = PushStructZero(arena, String8List);
  files_list->first       = &nil_str8_node;
  files_list->last        = &nil_str8_node;
 
- cstring cpath = null_terminate(arena, path);
- DIR    *dir   = opendir(cpath);
  if(!dir) {
-  Log("opendir(%s) failed", cpath);
   return files_list;
  }
 

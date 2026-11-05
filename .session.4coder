@@ -4,6 +4,6 @@ current = 0;
 
 tabs = {
 	{
-		{ .kind=3, .pixel_y=0x41A80000, .line=57, .cursor=1853, .mark=1864, .file="/home/nasr/dev/loo/source/loo/loo.cpp", },
+		{ .kind=3, .pixel_y=0x00000000, .line=1, .cursor=0, .mark=0, .file="/home/nasr/dev/loo/build.sh", },
 	},
 };

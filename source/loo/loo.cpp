@@ -11,7 +11,7 @@
 
 typedef struct GameCode GameCode;
 struct GameCode {
- SharedLibrary *library;
+ SharedLibrary library;
  struct timespec last_write_time;
  GameUpdateAndRenderFn *update_and_render;
   String8 library_path;
@@ -19,15 +19,21 @@ struct GameCode {
   String8 lock_path;
  };
 
- internal void game_code_init_paths(GameCode *code) {
+ internal void game_code_init_paths(Arena *arena, GameCode *code) {
 
-String8 path = ReadSelf();
+String8 path = ReadSelf(arena);
  u64 slash_position = 0;
 
 if(str8_find_last(&path, str8("/"), &slash_position)) {
-str8_chop_right(path, path.size - slash_position);
-path.data[slash_position] = 0;
+path.size = slash_position + 1;
 }
+
+code->library_path      = PushString8(arena, path.size + sizeof("loo_state.so"));
+code->library_path.size = 0;
+code->temp_path         = PushString8(arena, path.size + sizeof("loo_state_temp.so"));
+code->temp_path.size    = 0;
+code->lock_path         = PushString8(arena, path.size + sizeof("loo_state.lock"));
+code->lock_path.size    = 0;
 
 	str8_append(&code->library_path, path);
 	str8_append(&code->library_path, str8("loo_state.so"));
@@ -40,12 +46,15 @@ path.data[slash_position] = 0;
  }
 
  internal void game_code_reload_if_changed(Arena *arena, GameCode *code) {
-b32 lock_file_exists = FileExists(code->lock_path);
+b32 lock_file_exists = FileExists(arena, code->lock_path);
 Assert(lock_file_exists);
 
 
  struct stat info = {};
- if (stat(null_terminate(arena, &code->library_path), &info) != 0) return;
+ ScratchArena stat_scratch = scratch_start(arena);
+ int stat_result = stat(null_terminate(stat_scratch.arena, &code->library_path), &info);
+ scratch_end(&stat_scratch);
+ if (stat_result != 0) return;
 
  b32 changed = info.st_mtim.tv_sec  != code->last_write_time.tv_sec ||
  info.st_mtim.tv_nsec != code->last_write_time.tv_nsec;
@@ -53,15 +62,14 @@ Assert(lock_file_exists);
 
  code->last_write_time = info.st_mtim;
 
- if (code->library) {
- dlclose(code->library);
- code->library           = NULL;
+ if (code->library.mem) {
+LibraryClose(&code->library);
  code->update_and_render = NULL;
  }
 
  ScratchArena scratch = scratch_start(arena);
  String8 data = FileLoad(scratch.arena, code->library_path);
-FileDelete(arena, code->temp_path);
+FileDelete(scratch.arena, code->temp_path);
  b32 copied = data.size > 0 && FileWrite(data, code->temp_path);
  scratch_end(&scratch);
 
@@ -70,23 +78,17 @@ FileDelete(arena, code->temp_path);
  return;
  }
 
- code->library = LoadSharedLibrary(arena, code->temp_path);
- if (!code->library) {
+ code->library = LibraryLoad(arena, code->temp_path);
+ if (!code->library.mem) {
  Log("failed to load game code: %s\n", dlerror());
  return;
  }
 
- code->update_and_render = (GameUpdateAndRenderFn *)dlsym(code->library, GAME_UPDATE_AND_RENDER_SYMBOL);
- if (!code->update_and_render) {
- Log("game code has no %s: %s\n", GAME_UPDATE_AND_RENDER_SYMBOL, dlerror());
- return;
- }
-
+ code->update_and_render = (GameUpdateAndRenderFn *)LibraryProcLoad(&code->library, GAME_UPDATE_AND_RENDER_SYMBOL);
  Log("loaded game code\n");
  }
 
  //- input mapping
-
  internal ButtonState button_from_platform(PlatformButton a, PlatformButton b) {
  ButtonState result = {};
  result.ended_down            = a.ended_down || b.ended_down;
@@ -141,7 +143,7 @@ FileDelete(arena, code->temp_path);
  memory.transient = transient;
 
  GameCode code = {};
- game_code_init_paths(&code);
+ game_code_init_paths(platform_arena, &code);
 
  f32 dt = 1.0f / PlatformWindowRefreshHz(window);
  PlatformInput platform_input = {};

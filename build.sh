@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-date
-echo "author: Abdellah El Morabit"
-echo "Compiling Loo"
-echo
-
 BUILD_DIR=build
 SOURCE_DIR=source
 INCLUDES="-I${SOURCE_DIR}/loo -I${SOURCE_DIR} -I${SOURCE_DIR}/base -I${SOURCE_DIR}/render -I${SOURCE_DIR}/platform"
@@ -38,6 +33,21 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
+STATUS=0
+OUTPUT=$( { time g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -fuse-ld=mold -o "${BUILD_DIR}/loo" $LIBS; } 2>&1 ) || STATUS=$?
+
+if [ $STATUS -eq 0 ]; then
+    echo -e "==== BUILD SUCCESS ====\n"
+else
+    echo -e "==== BUILD FAILED ====\n"
+fi
+
+date
+echo "author: Abdellah El Morabit"
+echo "Compiling Loo"
+echo
 echo "Building ${BUILD_DIR}/loo..."
-time  g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -fuse-ld=mold -o "${BUILD_DIR}/loo" $LIBS
+echo "$OUTPUT"
+
+[ $STATUS -eq 0 ] || exit $STATUS
 "$(dirname "$0")/reload.sh"

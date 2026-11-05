@@ -1,12 +1,13 @@
 internal Arena *
 linux_arena_create(u64 capacity)
 {
+ u64    header = ArenaHeaderSize;
  Arena *arena = (Arena *)mmap(
                                     /* kernel decides where to throw the arena */
                                     NULL,
-                                    capacity + sizeof(Arena),
+                                    header + capacity,
                                     PROT_READ | PROT_WRITE,
-                                    MAP_SHARED | MAP_ANONYMOUS,
+                                    MAP_PRIVATE | MAP_ANONYMOUS,
                                     -1,
                                     0);
 
@@ -14,10 +15,13 @@ linux_arena_create(u64 capacity)
   return NULL;
  }
 
- arena->capacity          = capacity;
- arena->base_position     = (u8 *)arena + sizeof(Arena);
- arena->current_position  = 0;
- arena->previous_position = 0;
+ arena->capacity            = capacity;
+ arena->base_position       = (u8 *)arena + header;
+ arena->current_position    = 0;
+ arena->last_alloc_position = 0;
+ arena->block_position      = 0;
+ arena->current             = arena;
+ arena->previous            = NULL;
 
  return arena;
 }
@@ -29,5 +33,5 @@ linux_arena_destroy(Arena *arena)
   return;
  }
 
- munmap(arena, arena->capacity + sizeof(Arena));
+ munmap(arena, ArenaHeaderSize + arena->capacity);
 }

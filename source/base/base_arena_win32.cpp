@@ -1,18 +1,22 @@
 internal Arena *
 win32_arena_create(u64 capacity)
 {
+ u64    header = ArenaHeaderSize;
  Arena *arena = (Arena *)VirtualAlloc(NULL,
-                                            capacity + sizeof(Arena),
+                                            header + capacity,
                                             MEM_COMMIT | MEM_RESERVE,
                                             PAGE_READWRITE);
  if(!arena) {
   return NULL;
  }
 
- arena->capacity          = capacity;
- arena->base_position     = (u8 *)arena + sizeof(Arena);
- arena->current_position  = 0;
- arena->previous_position = 0;
+ arena->capacity            = capacity;
+ arena->base_position       = (u8 *)arena + header;
+ arena->current_position    = 0;
+ arena->last_alloc_position = 0;
+ arena->block_position      = 0;
+ arena->current             = arena;
+ arena->previous            = NULL;
  return arena;
 }
 

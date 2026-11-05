@@ -25,8 +25,10 @@ struct Directory {
  String8List *file_names;
 };
 
-#define LoadSharedLibrary(arena, name) linux_load_shared_library(arena, name)
-#define PlatformGetCurrentTime(format) linux_get_current_time(format)
+#define LibraryLoad(arena, path) linux_load_shared_library(arena, path)
+// #define PlatformGetCurrentTime(format) linux_get_current_time(format)
+#define LibraryProcLoad(library, name) linux_shared_library_get_proc_from_name(library, name)
+#define LibraryClose(library) linux_shared_library_close(library)
 
 //- Shared libraries
 internal void *linux_shared_library_get_proc_from_name(SharedLibrary *library, const char *name);
@@ -38,7 +40,7 @@ internal String8 linux_get_env(const char *var);
 //- File I/O
 internal b32          linux_file_write(String8 data, String8 path);
 internal String8      linux_file_load(Arena *arena, String8 path);
-internal b32          linux_file_exists(String8 path);
+internal b32          linux_file_exists(Arena *arena, String8 path);
 internal String8List *linux_open_dir(Arena *arena,
                                     String8  *original_path); // TODO: change the return value
 
@@ -51,7 +53,7 @@ internal void linux_log_with_args(const char *format, ...);
 
 #define FileLoad(arena, path) linux_file_load(arena, path)
 #define FileWrite(data, path) linux_file_write(data, path)
-#define FileExists(path) linux_file_exists(path)
+#define FileExists(arena,  path) linux_file_exists(arena, path)
 #define DirLoadFileNames(arena, path) linux_open_dir(arena, path)
 #define ReadSelf(arena) linux_read_self(arena)
 #define FileDelete(arena, path) linux_delete_file(arena, path)
