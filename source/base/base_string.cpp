@@ -1,576 +1,690 @@
+//- nil check functions
 internal b32 is_nil_str8(String8 *a)
 {
- return (a == &nil_str8);
+	return (a == &nil_str8);
 }
 
 internal b32 is_nil_str8_node(String8Node *a)
 {
- return (a == &nil_str8_node);
+	return (a == &nil_str8_node);
 }
 
 internal b32 is_nil_str16(String16 *a)
 {
- return (a == &nil_str16);
+	return (a == &nil_str16);
 }
 
 internal b32 is_nil_str16_node(String16Node *a)
 {
- return (a == &nil_str16_node);
+	return (a == &nil_str16_node);
 }
 
 internal b32 is_nil_str32(String32 *a)
 {
- return (a == &nil_str32);
+	return (a == &nil_str32);
 }
 
 internal b32 is_nil_str32_node(String32Node *a)
 {
- return (a == &nil_str32_node);
+	return (a == &nil_str32_node);
 }
+
+//- buffer clensing
 
 internal void str8_trim_left(String8 *buffer)
 {
- u64 index = 0;
- while (cstring_is_whitespace(buffer->data[index])) {
-  ++index;
- }
-
- str8_chop_left(*buffer, index);
+	u64 index = 0;
+	while (cstring_is_whitespace(buffer->data[index])) {
+		++index;
+	}
+	
+	str8_chop_left(*buffer, index);
 }
 
 internal void str16_trim_left(String16 *buffer)
 {
- u64 index = 0;
- while (cstring_is_whitespace(buffer->data[index])) {
-  ++index;
- }
-
- str16_chop_left(*buffer, index);
+	u64 index = 0;
+	while (cstring_is_whitespace(buffer->data[index])) {
+		++index;
+	}
+	
+	str16_chop_left(*buffer, index);
 }
 
 internal void str32_trim_left(String32 *buffer)
 {
- u64 index = 0;
-
- while (cstring_is_whitespace(buffer->data[index])) {
-  ++index;
- }
-
- str32_chop_left(*buffer, index);
+	u64 index = 0;
+	
+	while (cstring_is_whitespace(buffer->data[index])) {
+		++index;
+	}
+	
+	str32_chop_left(*buffer, index);
 }
 
 internal void str8_trim_right(String8 *buffer)
 {
- u64 index = buffer->size;
- while (cstring_is_whitespace(buffer->data[index])) {
-  --index;
- }
-
- str8_chop_right(*buffer, index);
+	u64 index = buffer->size;
+	while (cstring_is_whitespace(buffer->data[index])) {
+		--index;
+	}
+	
+	str8_chop_right(*buffer, index);
 }
+
+//
+internal String8 str8_cut_offset(Arena *arena, String8 buffer, u64 start, u64 end)
+{
+	String8 local = PushString8(arena, buffer.size);
+	str8_copy(&local, &buffer);
+	MemMove((local.data + start), (local.data + end), (buffer.size - end));
+	local.size -= (end - start);
+	return local;
+}
+
+internal String8 str8_insert(Arena *arena, String8 dest, String8 src, u64 pos) {
+	
+	Assert(dest.size >= pos);
+	
+	String8 result  = PushString8(arena, dest.size + src.size);
+	result.size = 0;
+	
+	String8 left  = str8_chop_right(dest, dest.size - pos);
+    String8 right = str8_chop_left(dest, pos);
+	
+	str8_append(&result, left);
+	str8_append(&result, src);
+	str8_append(&result, right);
+	return result;
+}
+
+internal String8 str8_cut_match(Arena *arena, String8 buffer, String8 start, String8 end)
+{
+	u64 index = 0;
+	u64 start_pos = 0;
+	while(str8_find(&buffer, index, start, &start_pos)) {
+		
+		u64 end_pos = 0;
+		str8_find(&buffer, index, end, &end_pos);
+		if(end_pos == buffer.size) {
+			// TODO: if the nl position == size thats EOF or something
+		}
+		
+		u64 remove_end = end_pos + end.size;
+		u64 tail       = buffer.size - remove_end;
+		
+		
+		// NOTE: we get the comment posotion but it points to the first  character.
+		// if the  start is bigger than 1. which when handling comments is
+		// we substract 1 from the size. because we already have the first one and then add the rest
+		// to  the comment position. which makes it get removed in the memmove
+		// str8_cut_offset(arena, buffer, start_pos, remove_end)
+		
+#if 0
+		MemMove((buffer.data + start_pos), (buffer.data + remove_end), (tail));
+		buffer.size -= (remove_end - start_pos);
+#else
+		buffer = str8_cut_offset(arena, buffer, start_pos, remove_end);
+#endif
+		index += start_pos;
+	}
+	return buffer;
+}
+
 
 internal b32 str8_is_match(String8 a, String8 b)
 {
- if(a.size != b.size) {
-  return false;
- }
+	if(a.size != b.size) {
+		return false;
+	}
+	
+	if(a.size == 0) { // no need to check if b.size is 0 because both sizes are already equal
+		return true;
+	}
+	
+	return (b32)(memcmp(a.data, b.data, b.size) == 0);
+}
 
- if(a.size == 0) { // no need to check if b.size is 0 because both sizes are already equal
-  return true;
- }
-
- return (b32)(memcmp(a.data, b.data, b.size) == 0);
+internal b32 str8_is_any_match(String8 a, String8 b)
+{
+	b32 equal = (b32)(memcmp(a.data, b.data, b.size) == 0);
+	return equal;
 }
 
 
 internal b32  str8_is_whitespace(String8 buffer) {
-return ((char)buffer.data[0] == ' ');
+	return ((char)buffer.data[0] == ' ');
 }
+
+internal void str8_concat_list(String8List *a, String8List *b) {
+	b->last   = a->last->next;
+	b->count  += a->count;
+}
+
 
 internal b32 str8_find_needle(String8 *buffer, u64 start_pos, u8 *needle, u64 *pos) {
-return str8_find(buffer, start_pos, str8(needle), pos);
- }
+	return str8_find(buffer, start_pos, str8(needle), pos);
+}
 
 internal b32 str8_find_last(String8 *buffer, String8 element, u64 *out) {
-
-if(element.size == 0 || element.size > buffer->size) {
-return false;
-}
-
-for(u64 index = buffer->size - element.size + 1; index > 0; --index) {
-if(memcmp(buffer->data + index - 1, element.data, element.size) == 0) {
-*out = index - 1;
-return true;
-}
-}
-return false;
-
+	
+	if(element.size == 0 || element.size > buffer->size) {
+		return false;
+	}
+	
+	for(u64 index = buffer->size - element.size + 1; index > 0; --index) {
+		if(memcmp(buffer->data + index - 1, element.data, element.size) == 0) {
+			*out = index - 1;
+			return true;
+		}
+	}
+	return false;
+	
 }
 
 internal b32 str8_find_all(Arena *arena, String8 *buffer, u64 start_pos, String8 element, String8List *out)
 {
- u64 count     = 0; // checks if any we're found to pass that as a error handling mechanism
- u64 found_pos = 0;
-
- while (str8_find(buffer, start_pos, element, &found_pos)) {
-  String8Node *node = PushStruct(arena, String8Node);
-  *node             = ToString8Node(str8_create_substr(buffer, found_pos, element.size));
-  str8_list_push_node(out, node);
-
-  ++count;
-  start_pos = found_pos + element.size;
- }
-
- if(!count)
-  return false;
- return true;
+	u64 count     = 0; // checks if any we're found to pass that as a error handling mechanism
+	u64 found_pos = 0;
+	
+	while (str8_find(buffer, start_pos, element, &found_pos)) {
+		String8Node *node = PushStruct(arena, String8Node);
+		*node             = ToString8Node(str8_create_substr(buffer, found_pos, element.size));
+		str8_list_push_node(out, node);
+		
+		++count;
+		start_pos = found_pos + element.size;
+	}
+	
+	if(!count)
+		return false;
+	return true;
 }
 
 // TODO: does this work like it should?
 internal b32 str8_find(String8 *buffer, u64 start_pos, String8 element, u64 *out)
 {
- for(u64 index = start_pos; index < buffer->size - element.size; ++index) {
-  String8 view = str8_chop_left(*buffer, index);
-  view         = str8_chop_right(view, view.size - element.size);
-  if(str8_is_match(view, element)) {
-   *out = index;
-   return true;
-  }
- }
-
- return false;
+	if(buffer->size < element.size) return false;
+	
+	for(u64 index = start_pos; index < buffer->size - element.size; ++index) {
+		String8 view = str8_chop_left(*buffer, index);
+		view         = str8_chop_right(view, view.size - element.size);
+		if(str8_is_match(view, element)) {
+			*out = index;
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 internal b32 str8_replace(String8 buffer, String8 element, u64 start_pos)
 {
- u64 offset = 0;
- b32 result = str8_find(&buffer, start_pos, element, &offset);
- if(!result)
-  return false;
-
- for(u64 index = 0; index < element.size; ++index) {
-  buffer.data[start_pos + index] = element.data[index];
- }
-
- return true;
+	u64 offset = 0;
+	b32 result = str8_find(&buffer, start_pos, element, &offset);
+	if(!result)
+		return false;
+	
+	for(u64 index = 0; index < element.size; ++index) {
+		buffer.data[start_pos + index] = element.data[index];
+	}
+	
+	return true;
 }
 
 internal b32 str8_trim(String8 buffer)
 {
- return str8_replace(buffer, str8("\n"), 0);
+	return str8_replace(buffer, str8("\n"), 0);
 }
 
 
 internal b32 str8_is_digit(String8 a, u64 start_pos)
 {
- for(u64 index = start_pos; index < a.size; ++index) {
-  if(!cstring_is_digit(a.data[index]))
-   return false;
- }
-
- return true;
+	for(u64 index = start_pos; index < a.size; ++index) {
+		if(!cstring_is_digit(a.data[index]))
+			return false;
+	}
+	
+	return true;
 }
 
 internal void str8_copy(String8 *dest, String8 *src)
 {
- MemCpy(dest->data, src->data, src->size);
- Assert(memcmp(dest->data, src->data, src->size) == 0);
- dest->size = src->size;
+	MemCpy(dest->data, src->data, src->size);
+	Assert(memcmp(dest->data, src->data, src->size) == 0);
+	dest->size = src->size;
 }
 
 internal String8 str8_clone(Arena *arena, String8 *src)
 {
- String8 clone = PushString8(arena, src->size);
- str8_copy(&clone, src);
- return clone;
+	String8 clone = PushString8(arena, src->size);
+	str8_copy(&clone, src);
+	return clone;
 }
 
 // you cant just do this you have to reallocat that thing no?
 internal b32 str8_append_char(String8 *dest, u8 src)
 {
- if(is_nil_str8(dest) || src == 0)
-  return false;
- dest->data[dest->size] = src;
- dest->size += 1;
- return true;
+	if(is_nil_str8(dest) || src == 0)
+		return false;
+	dest->data[dest->size] = src;
+	dest->size += 1;
+	return true;
 }
 
 internal int str8_to_int(String8 *buffer)
 {
- int result = 0;
-
- for(u64 index = 0; index < buffer->size; ++index) {
-  if(buffer->data[index] < 'Z' && buffer->data[index] > 'A') {
-   result = buffer->data[index] - '0';
-   result *= 10;
-  }
- }
- return result;
+	int result = 0;
+	
+	for(u64 index = 0; index < buffer->size; ++index) {
+		if(buffer->data[index] < 'Z' && buffer->data[index] > 'A') {
+			result = buffer->data[index] - '0';
+			result *= 10;
+		}
+	}
+	return result;
 }
+
+internal String8 str8_concat(Arena *arena, String8 dest, String8 source)
+{
+    String8 result = PushString8(arena, dest.size + source.size + 1);
+    result.size = dest.size + source.size;
+    if(dest.size) MemCpy(result.data, dest.data, dest.size);
+    if(source.size) MemCpy(result.data + dest.size, source.data, source.size);
+    result.data[result.size] = 0;
+    return result;
+}
+
 
 internal b32 str8_append(String8 *dest, String8 src)
 {
- if(is_nil_str8(dest) || is_nil_str8(&src) || src.size == 0)
-  return false;
- MemCpy(dest->data + dest->size, src.data, src.size);
- dest->size += src.size;
- return true;
+	if(is_nil_str8(dest) || is_nil_str8(&src) || src.size == 0)
+		return false;
+	MemCpy(dest->data + dest->size, src.data, src.size);
+	dest->size += src.size;
+	return true;
 }
 
 internal String8 str8_zero()
 {
- return String8{0};
-}
-
-// TODO: error handling
-internal b32 str8_chop_left_ptr(String8 *buffer, u64 count)
-{
- if(buffer->size < count)
-  return false;
-
- buffer->data += count;
- buffer->size -= count;
- return true;
-}
-
-internal b32 str8_chop_right_ptr(String8 *buffer, u64 count)
-{
- if(buffer->size < count)
-  return false;
-
- buffer->size -= count;
- return true;
+	return String8{0};
 }
 
 internal String8 str8_chop_left(String8 buffer, u64 count)
 {
- if(buffer.size < count) {
-  return buffer;
- }
-
- buffer.data += count;
- buffer.size -= count;
-
- return buffer;
+	if(buffer.size < count) {
+		return buffer;
+	}
+	
+	buffer.data += count;
+	buffer.size -= count;
+	
+	return buffer;
 }
 
 internal String8 str8_chop_right(String8 buffer, u64 count)
 {
- if(buffer.size < count) {
-  return buffer;
- }
-
- buffer.size -= count;
- return buffer;
+	if(buffer.size < count) {
+		return buffer;
+	}
+	
+	buffer.size -= count;
+	return buffer;
 }
 
 
 internal b32 str8_list_push_node(String8List *list, String8Node *node)
 {
- if(list) {
-  if(list->first == NULL || list->first == &nil_str8_node) {
-   list->first = node;
-   list->last  = node;
-  } else {
-   list->last->next = node;
-   list->last       = node;
-  }
-  list->count += 1;
-  return true;
- }
- return false;
+	if(list) {
+		if(list->first == NULL || list->first == &nil_str8_node) {
+			list->first = node;
+			list->last  = node;
+		} else {
+			list->last->next = node;
+			list->last       = node;
+		}
+		list->count += 1;
+		return true;
+	}
+	return false;
 }
 
 internal void str8_pop_node(String8List *list)
 {
- // TODO: ...
+	// TODO: ...
 }
 
 internal void str8_list_remove_node(String8List *list, String8Node *node)
 {
- // TODO: ...
+	// TODO: ...
 }
 
 internal String8 str8_create_substr(String8 *buffer, u64 left_offset, u64 right_offset)
 {
- return str8_chop_right(str8_chop_left(*buffer, left_offset),
-                        (buffer->size - left_offset) -
-                        right_offset); // we need to remove all of the excess data to only
- // retain the substring we want
+	return str8_chop_right(str8_chop_left(*buffer, left_offset),
+						   (buffer->size - left_offset) -
+						   right_offset); // we need to remove all of the excess data to only
+	// retain the substring we want
 }
 
 internal String16 str16_create_substr(String16 *buffer, u64 left_offset, u64 right_offset)
 {
- return str16_chop_right(str16_chop_left(*buffer, left_offset),
-                         (buffer->size - left_offset) - right_offset);
+	return str16_chop_right(str16_chop_left(*buffer, left_offset),
+							(buffer->size - left_offset) - right_offset);
 }
 
 internal String32 str32_create_substr(String32 *buffer, u64 left_offset, u64 right_offset)
 {
- return str32_chop_right(str32_chop_left(*buffer, left_offset),
-                         (buffer->size - left_offset) - right_offset);
+	return str32_chop_right(str32_chop_left(*buffer, left_offset),
+							(buffer->size - left_offset) - right_offset);
 }
 
 internal String16 str16_chop_left(String16 buffer, u64 count)
 {
- if(buffer.size < count) {
-  return buffer;
- }
-
- for(u64 idx = 0; idx < count; ++idx) {
-  buffer.data++;
- }
- return buffer;
+	if(buffer.size < count) {
+		return buffer;
+	}
+	
+	for(u64 idx = 0; idx < count; ++idx) {
+		buffer.data++;
+	}
+	return buffer;
 }
 
 internal String32 str32_chop_left(String32 buffer, u64 count)
 {
- if(buffer.size < count) {
-  return buffer;
- }
-
- for(u64 idx = 0; idx < count; ++idx) {
-  buffer.data++;
- }
- return buffer;
+	if(buffer.size < count) {
+		return buffer;
+	}
+	
+	for(u64 idx = 0; idx < count; ++idx) {
+		buffer.data++;
+	}
+	return buffer;
 }
 
 internal String16 str16_chop_right(String16 buffer, u64 count)
 {
- if(buffer.size < count) {
-  return buffer;
- }
-
- buffer.size -= count;
- return buffer;
+	if(buffer.size < count) {
+		return buffer;
+	}
+	
+	buffer.size -= count;
+	return buffer;
 }
 
 internal String32 str32_chop_right(String32 buffer, u64 count)
 {
- if(buffer.size < count) {
-  return buffer;
- }
-
- buffer.size -= count;
- return buffer;
+	if(buffer.size < count) {
+		return buffer;
+	}
+	
+	buffer.size -= count;
+	return buffer;
 }
 
 internal b32 str8_prefix(Arena *arena, String8 *buffer, String8 *prefix)
 {
- b32 result = str8_insert(arena, buffer, prefix, 0);
- return result;
+	b32 result = str8_insert(arena, buffer, prefix, 0);
+	return result;
 }
 
 // TODO: doesnt account for this being the actuall beginning of a line.
 internal b32 str8_starts_with(String8 buffer, String8 prefix)
 {
- if(buffer.size < prefix.size) {
-  return false;
- }
-
- return str8_is_match(String8{buffer.data, prefix.size}, prefix);
+	if(buffer.size < prefix.size) {
+		return false;
+	}
+	
+	return str8_is_match(String8{buffer.data, prefix.size}, prefix);
 }
 
 internal b32 str8_is_empty(String8 *buffer)
 {
- if(cstring8_length(buffer->data) == 0 || buffer->size == 0)
-  return true; // the values can't be lower than 0
- return false;
+	if(cstring8_length(buffer->data) == 0 || buffer->size == 0)
+		return true; // the values can't be lower than 0
+	return false;
 }
 
 internal b32 str8_insert(Arena *arena, String8 *dest, String8 *src, u64 pos)
 {
- if(dest->size < pos)
-  return false;
+	if(dest->size < pos)
+		return false;
+	
+	String8 result = PushString8(arena, dest->size + src->size);
+	result.size    = 0;
+	
+	String8 head = str8_create_substr(dest, 0, pos);
+	String8 tail = str8_create_substr(dest, pos, dest->size);
+	
+	if(!str8_append(&result, head))
+		return false;
+	if(!str8_append(&result, *src))
+		return false;
+	if(!str8_append(&result, tail))
+		return false;
+	
+	*dest = result;
+	return true;
+}
 
- String8 result = PushString8(arena, dest->size + src->size);
- result.size    = 0;
-
- String8 head = str8_create_substr(dest, 0, pos);
- String8 tail = str8_create_substr(dest, pos, dest->size);
-
- if(!str8_append(&result, head))
-  return false;
- if(!str8_append(&result, *src))
-  return false;
- if(!str8_append(&result, tail))
-  return false;
-
- *dest = result;
- return true;
+internal String8 str8_ends_with(String8 buffer, String8 affix)
+{
+	
+	AssertLog(0,"TODO");
+	// TODO: ...
+	return str8_zero();
+	
 }
 
 internal String8 str8_get_file_extension(String8 buffer)
 {
- u64 dot   = 0;
- b32 found = str8_find(&buffer, 0, str8("."), &dot);
- if(found) {
-  return str8_chop_left(buffer, dot);
- } else {
-  return str8_zero();
- }
+	u64 dot   = 0;
+	b32 found = str8_find(&buffer, 0, str8("."), &dot);
+	if(found) {
+		return str8_chop_left(buffer, dot);
+	} else {
+		return str8_zero();
+	}
 }
+
+#if 0
+internal String8Array
+str8_array_reserve(Arena *arena, u64 count)
+{
+    String8Array result = {};
+    result.v     = PushArrayZero(arena, String8, count);
+    return result;
+    result.count = count;
+}
+
+
+internal String8Array
+str8_array_from_list(Arena *arena, String8List *list)
+{
+    String8Array result = str8_array_reserve(arena, list->count);
+    u64 index = 0;
+    FOR_STR8_NODE(list, node) {
+		result.v[index++] = node->value;
+    }
+    return result;
+}
+internal String8Array
+str8_array_slice(String8Array array, u64 first, u64 count)
+{
+    String8Array result = {};
+	
+    first = Min(first, array.count);
+    count = Min(count, array.count - first);
+	
+    result.v     = array.v + first;
+    result.count = count;
+    return result;
+}
+#endif
+
+//- converter
 
 internal cstring str8_to_cstring(Arena *arena, String8 *buffer)
 {
- cstring null_terminated_buffer = null_terminate(arena, buffer);
- return (cstring)null_terminated_buffer;
+	cstring null_terminated_buffer = null_terminate(arena, buffer);
+	return (cstring)null_terminated_buffer;
 }
 
 //- cstring implementations
 
 internal b32 cstring_is_digit(u8 point)
 {
- return (point >= '0' && point <= '9');
+	return (point >= '0' && point <= '9');
 }
 
 internal b32 cstring_is_alpha(u8 point)
 {
- return ((point >= 'a' && point <= 'z') || (point >= 'A' && point <= 'Z') || (point == '_'));
+	return ((point >= 'a' && point <= 'z') || (point >= 'A' && point <= 'Z') || (point == '_'));
 }
 
 internal b32 cstring_is_alpha_num(u8 point)
 {
- return (cstring_is_alpha(point) || cstring_is_digit(point));
+	return (cstring_is_alpha(point) || cstring_is_digit(point));
 }
 
 internal b32 cstring_is_whitespace(u8 point)
 {
- return (point == ' ' || point == '\t');
+	return (point == ' ' || point == '\t');
 }
 
 internal b32 cstring_is_slash(u8 point)
 {
- return (point == '/' || point == '\\');
+	return (point == '/' || point == '\\');
 }
 
 internal b32 cstring_is_newline(u8 point)
 {
- return (point == '\n' || point == '\r');
+	return (point == '\n' || point == '\r');
 }
 
 internal b32 cstring_is_match(u8 *a, u8 *b)
 {
- u64 as = cstring8_length(a);
- u64 bs = cstring8_length(b);
-
- if(as != bs) {
-  return false;
- }
-
- for(u64 idx = 0; idx < as; ++idx) {
-  if(a[idx] != b[idx]) {
-   return false;
-  }
- }
- return true;
+	u64 as = cstring8_length(a);
+	u64 bs = cstring8_length(b);
+	
+	if(as != bs) {
+		return false;
+	}
+	
+	for(u64 idx = 0; idx < as; ++idx) {
+		if(a[idx] != b[idx]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 
 // NOTE: ignores the biggest buffer size
 internal b32 cstring_any_match(u8 *a, u8 *b)
 {
- u64 lenght = cstring8_length(b);
- for(u64 idx = 0; idx < lenght; ++idx) {
-  if(a[idx] != b[idx]) {
-   return false;
-  }
- }
- return true;
+	u64 lenght = cstring8_length(b);
+	for(u64 idx = 0; idx < lenght; ++idx) {
+		if(a[idx] != b[idx]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 internal u64 cstring8_length(u8 *c)
 {
- u8 *p = c;
- if(!c)
-  return 0;
- for(; *c != 0; ++c)
- ;
- return (u64)(c - p);
+	u8 *p = c;
+	if(!c)
+		return 0;
+	for(; *c != 0; ++c)
+		;
+	return (u64)(c - p);
 }
 
 internal u64 cstring16_length(u16 *c)
 {
- u16 *p = c;
-
- if(!c)
-  return 0;
- for(; *c != 0; ++c)
- ;
- return (u64)(c - p);
+	u16 *p = c;
+	
+	if(!c)
+		return 0;
+	for(; *c != 0; ++c)
+		;
+	return (u64)(c - p);
 }
 
 internal u64 cstring32_length(u32 *c)
 {
- u32 *p = c;
-
- if(!c)
-  return 0;
- for(; *c != 0; ++c)
- ;
- return (u64)(p - c);
+	u32 *p = c;
+	
+	if(!c)
+		return 0;
+	for(; *c != 0; ++c)
+		;
+	return (u64)(p - c);
 }
 
 internal cstring null_terminate(Arena *arena, String8 *buffer)
 {
- char *text = (char *)arena_alloc(arena, buffer->size + 1, 0);
- MemCpy(text, buffer->data, buffer->size);
- text[buffer->size] = '\0';
- return (cstring)text;
+	char *text = (char *)arena_alloc(arena, buffer->size + 1, 0);
+	MemCpy(text, buffer->data, buffer->size);
+	text[buffer->size] = '\0';
+	return (cstring)text;
 }
 
 internal String8 remove_null_terminator(Arena *arena, String8 c)
 {
- Assert(arena);
- if((c.size > 0) && (c.data[c.size - 1] == '\0')) {
-  String8 chopped = {c.data, c.size - 1};
-  return chopped;
- }
-
- return c;
+	Assert(arena);
+	if((c.size > 0) && (c.data[c.size - 1] == '\0')) {
+		String8 chopped = {c.data, c.size - 1};
+		return chopped;
+	}
+	
+	return c;
 }
 
 // returns the index of where to find it. if not found returns 0.
 internal u64 cstring8_find(u8 *buffer, u8 *element)
 {
- u8 *c = buffer;
- while (c != 0) {
-  if(!cstring_is_match(buffer, element)) {
-   return c - buffer;
-  } else {
-   ++c;
-  }
- }
-
- return 0;
+	u8 *c = buffer;
+	while (c != 0) {
+		if(!cstring_is_match(buffer, element)) {
+			return c - buffer;
+		} else {
+			++c;
+		}
+	}
+	
+	return 0;
 }
 
 // returns the index of where to find it. if not found returns 0.
 internal u64 cstring8_find_new_line(u8 *buffer)
 {
- u8 *c = buffer;
- while (*c != 0) {
-  if(cstring_is_newline(*c)) {
-   return c - buffer;
-  } else {
-   ++c;
-  }
- }
-
- return 0;
+	u8 *c = buffer;
+	while (*c != 0) {
+		if(cstring_is_newline(*c)) {
+			return c - buffer;
+		} else {
+			++c;
+		}
+	}
+	
+	return 0;
 }
 
 // returns the index of where to find it. if not found returns 0.
 internal u64 cstring8_find_needle(u8 *buffer, u8 needle)
 {
- u8 *c = buffer;
- while (*c != 0) {
-  if(*c == needle) {
-   return c - buffer;
-  } else {
-   ++c;
-  }
- }
-
- return 0;
+	u8 *c = buffer;
+	while (*c != 0) {
+		if(*c == needle) {
+			return c - buffer;
+		} else {
+			++c;
+		}
+	}
+	
+	return 0;
 }

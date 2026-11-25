@@ -1,52 +1,40 @@
 #ifndef LOO_PLATFORM_H
 #define LOO_PLATFORM_H
 
+#include "platform/platform.h"
 
-//- framebuffer
 typedef struct FrameBuffer FrameBuffer;
 struct FrameBuffer {
- u32 *pixels;
- s32 width;
- s32 height;
- s32 pitch; // in pixels
- };
-
- //- input
- // half_transition_count = how many times the button flipped this frame, so a press + release
- // inside one frame still shows up. ended_down = state at the end of the frame.
- typedef struct ButtonState ButtonState;
- struct ButtonState {
- s32 half_transition_count;
- b32 ended_down;
- };
-
- typedef struct GameInput GameInput;
- struct GameInput {
- f32 dt; // fixed, 1 / monitor refresh rate
-
- ButtonState move_up;
- ButtonState move_down;
- ButtonState move_left;
- ButtonState move_right;
- ButtonState action;
- ButtonState back;
-
- ButtonState mouse[3]; // left, right, middle
- s32 mouse_x, mouse_y; // in framebuffer pixels
- b32 mouse_in_window;
- };
-
- internal b32 button_pressed(ButtonState b)  { return b.ended_down && b.half_transition_count > 0; }
- internal b32 button_released(ButtonState b) { return !b.ended_down && b.half_transition_count > 0; }
-
- struct GameMemory {
- b32 is_initialized;
- Arena *permanent;
- Arena *transient;
- void *state;
+	u32 *pixels;
+	s32 width;
+	s32 height;
 };
 
-//- entry point
+typedef struct GameInput GameInput;
+struct GameInput {
+	f32 dt;
+
+	PlatformButton move_up;
+	PlatformButton move_down;
+	PlatformButton move_left;
+	PlatformButton move_right;
+	PlatformButton action;
+	PlatformButton back;
+
+	PlatformButton mouse[3];
+	s32 mouse_x, mouse_y;
+	b32 mouse_in_window;
+};
+
+internal b32 button_pressed(PlatformButton b)  { return  b.ended_down && b.half_transition_count > 0; }
+internal b32 button_released(PlatformButton b) { return !b.ended_down && b.half_transition_count > 0; }
+
+struct GameMemory {
+	Arena *permanent;
+	Arena *transient;
+	void *state;
+};
+
 #define GAME_UPDATE_AND_RENDER(name) void name(GameMemory *memory, GameInput *input, FrameBuffer *fb)
 typedef GAME_UPDATE_AND_RENDER(GameUpdateAndRenderFn);
 

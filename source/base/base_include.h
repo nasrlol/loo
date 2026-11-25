@@ -33,8 +33,12 @@
 #include <sys/un.h>
 #include <fcntl.h>
 #include <dlfcn.h>
-
+#include <signal.h>
+#include <link.h>
+#include <execinfo.h>
 #include <pthread.h>
+
+
 
 #elif PLATFORM_WINDOWS
 #define _WIN32_WINNT 0x0601

@@ -45,7 +45,7 @@ internal void win32_logf(_Printf_format_string_ const char *fmt, ...);
 #if COMPILER_MSVC
 #pragma warning(disable : 28251) // disabled the annotations warning that are defined in winbase.h
 #define ENTRYPOINT(hinstance, prev_instance, cmd_line, show_cmd) \
- int WINAPI WinMain(hinstance, prev_instance, cmd_line, show_cmd)
+int WINAPI WinMain(hinstance, prev_instance, cmd_line, show_cmd)
 #endif // COMPIPILER_MSVC DISABLE WARNING
 
 #endif

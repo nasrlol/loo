@@ -5,21 +5,21 @@ typedef struct Arena     Arena;
 typedef struct ScratchArena ScratchArena;
 
 struct Arena {
- u64       current_position;
- u64       last_alloc_position;
- u64       capacity;
- u64       block_position;
- u8       *base_position;
-
- Arena    *current;
- Arena    *previous;
+	u64       current_position;
+	u64       last_alloc_position;
+	u64       capacity;
+	u64       block_position;
+	u8       *base_position;
+	
+	Arena    *current;
+	Arena    *previous;
 };
 
 struct ScratchArena {
- Arena *arena;
- Arena *start_block;
- u64    start_position;
- u64    start_last_alloc_position;
+	Arena *arena;
+	Arena *start_block;
+	u64    start_position;
+	u64    start_last_alloc_position;
 };
 
 internal void        *arena_alloc(Arena *arena, u64 size, b32 zero);

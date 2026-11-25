@@ -4,7 +4,7 @@
 
 typedef struct Profile Profile;
 struct Profile {
- f32 start, end;
+	f32 start, end;
 };
 
 #endif // BASE_PROFILE_H

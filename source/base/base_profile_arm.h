@@ -4,4 +4,7 @@
 #define GetCurrentCPUTime(val) __asm__ volatile("isb; mrs %0, cntvct_el0" : "=r"(val) ::"memory");
 #define GetCurrentCPUFreq(val) __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(val));
 
+internal inline u64 ReadCPUTimer();
+internal inline u64 ReadCPUTimerFreq();
+
 #endif

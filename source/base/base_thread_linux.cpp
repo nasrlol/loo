@@ -1,29 +1,48 @@
-
-internal ThreadPool thread_pool_create(Arena *arena, u64 count)
+internal void *linux_thread_entry(void *raw)
 {
- for(u64 index = 0; index < count; ++index) {
-  pthread_t *out = PushStruct(arena, pthread_t);
-  // pthread_create(out,  0, , 0);
- }
+    ThreadStart start = *(ThreadStart *)raw;
+	Arena *arena = ArenaCreate(MiB(64));
+    start.proc(start.param);
+    ArenaDestroy(arena);
+    return 0;
+}
 
- return {};
+internal Thread thread_launch(Arena *arena, ThreadProc *proc, void *param)
+{
+    Thread thread = {};
+	
+    ThreadStart *start = PushStruct(arena, ThreadStart);
+    start->proc  = proc;
+    start->param = param;
+	
+    pthread_t handle;
+    int error = pthread_create(&handle, 0, linux_thread_entry, start);
+    AssertLog(!error, "failed to launch thread");
+	
+    thread.data[0] = (u64)handle;
+    return thread;
 }
 
 
-internal Thread thread_launch(ThreadProc proc)
+internal b32 thread_join(Thread thread)
 {
- Thread thread = {};
-
- pthread_t out;
- int       error = pthread_create(&out, 0, (void *(*)(void *))proc, NULL);
- if(!error) {
-  // TODO: the thread pool impelemtnation will follow in the future so i don't know how to handle this properly yet
-  Assert(0);
- }
-
- thread.data[0] = (u64)out;
-
- // TODO: do i  put a referecne int the Thread struct to the created thread so we can destroy it later?
-
- return thread;
+    return pthread_join((pthread_t)thread.data[0], 0) == 0;
 }
+
+internal void thread_detach(Thread thread)
+{
+    pthread_detach((pthread_t)thread.data[0]);
+}
+
+internal void thread_set_name(String8 name)
+{
+    char buffer[16] = {0};
+    MemCpy(buffer, name.data, Min(name.size, ArrayCount(buffer) - 1));
+    pthread_setname_np(pthread_self(), buffer);
+}
+
+internal u64 thread_current_id(void)
+{
+    return (u64)gettid();
+}
+

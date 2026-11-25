@@ -29,8 +29,6 @@
 #include "platform.h"
 
 #if PLATFORM_LINUX
-#include "platform_linux.h"
-
 #if X11
 #include "platform_linux_x11.h"
 #include "platform_linux_x11.cpp"

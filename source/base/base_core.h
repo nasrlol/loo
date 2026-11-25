@@ -80,12 +80,11 @@
 #define Trap() __builtin_trap()
 #endif
 
-//-
 #define MemCpy(dest, src, len) memcpy((dest), (src), (len))
 #define MemSet(dest, val, len) memset((dest), (val), (len))
 #define MemSetZero(dest, len) memset((dest), (0), (len))
+#define MemMove(dest, src, len) memmove((dest), (src), (len))
 
-//-
 #if COMPILER_MSVC
 #pragma section("read_only", read)
 #define ReadOnly __declspec(allocate("read_only"))
@@ -100,6 +99,9 @@
 #endif
 
 //-
+
+#define Fmt(buffer,size, fmt, ...) snprintf(buffer, size, fmt, __VA_ARGS__)
+
 
 //- types
 
@@ -130,26 +132,13 @@ typedef intptr_t  smm;
 #endif
 
 
-
-//-
-
-
-#define FOR_NODE(list, root, type, current, next, nil_node) \
-for(type *current = list->root;                  \
- (current != NULL) || (current != &nil_node); \
- current = current->next)
-
-
-//-
-
-
 #if 0
 // TODO: to_str8 using format specifiers
 
 typedef struct LogList LogList;
 struct LogList {
-cstring *root;
-cstring *current;
+	cstring *root;
+	cstring *current;
 };
 
 #define LogPush(list, log)
@@ -160,23 +149,29 @@ cstring *current;
 
 #endif
 
+#if COMPILER_GCC
+#define BASE_FORCE_TAIL [[gnu::musttail]]
+#endif
 
 #define Assert(expression)   \
- do {                     \
-  if(!(expression)) { \
-   breakpoint();    \
-   Trap();          \
-  }                    \
- } while (0)
+do {                     \
+if(!(expression)) { \
+breakpoint();    \
+Trap();          \
+}                    \
+} while (0)
 
 // NOTE: apparantly in macros this strinifys whataever you put after the #
 #define AssertLog(expression, ...)                                                \
- do {                                                                          \
-  if(!(expression)) {                                                      \
-   Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
-   Log(__VA_ARGS__);                                                     \
-   Assert(false);                                                        \
-  }                                                                         \
- } while (0)
+do {                                                                          \
+if(!(expression)) {                                                      \
+Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
+Log(__VA_ARGS__);                                                     \
+Assert(false);                                                        \
+}                                                                         \
+} while (0)
+
+
+#define to_int(value) (value - '0')
 
 #endif //  BASE_CORE_H

@@ -18,57 +18,84 @@ typedef struct String8List  String8List;
 typedef struct String16List String16List;
 typedef struct String32List String32List;
 
+typedef struct String8Array String8Array;
+typedef struct String16Array String16Array;
+typedef struct String32Array String32Array;
+
 //- strings
 
 struct String8 {
- u8 *data;
- u64 size;
+	u8 *data;
+	u64 size;
 };
 
 struct String16 {
- u16 *data;
- u64  size;
+	u16 *data;
+	u64  size;
 };
 
 struct String32 {
- u32 *data;
- u64  size;
+	u32 *data;
+	u64  size;
 };
 
 //- nodes
 struct String8Node {
- String8Node *next;
- String8      value;
+	String8Node *next;
+	String8      value;
 };
 
 struct String16Node {
- String16Node *next;
- String16      string;
+	String16Node *next;
+	String16      string;
 };
 
 struct String32Node {
- String32Node *next;
- String32      value;
+	String32Node *next;
+	String32      value;
 };
 
 //- lists
 struct String8List {
- String8Node *first;
- String8Node *last;
- u64          count;
+	String8Node *first;
+	String8Node *last;
+	u64          count;
 };
 
 struct String16List {
- String16Node *first;
- String16Node *last;
- u64           count;
+	String16Node *first;
+	String16Node *last;
+	u64           count;
 };
 
 struct String32List {
- String32Node *first;
- String32Node *last;
- u64           count;
+	String32Node *first;
+	String32Node *last;
+	u64           count;
 };
+
+//- arrays
+
+
+struct String8Array {
+	u64 size;
+	u64 index;
+	String8 *array;
+};
+
+struct String16Array {
+	u64 size;
+	u64 index;
+	String16 *array;
+};
+
+
+struct String32Array {
+	u64 size;
+	u64 index;
+	String32 *array;
+};
+
 
 //- nil / zero-value checks and constructors
 internal b32     is_nil_str8(String8 *a);
@@ -89,22 +116,36 @@ internal b32     str8_insert(Arena *arena, String8 *dest, String8 *src, u64 pos)
 //- str8 trim / chop
 internal void    str8_trim_left(String8 *buffer);
 internal void    str8_trim_right(String8 *buffer);
+internal b32     str8_trim(String8 buffer);
+internal String8 str8_cut_offset(Arena *arena, String8 buffer, u64 start, u64 end);
+internal String8 str8_cut_match(Arena *arena, String8 buffer, String8 start, String8 end);
 internal String8 str8_chop_left(String8 buffer, u64 count);
 internal String8 str8_chop_right(String8 buffer, u64 count);
-internal b32     str8_chop_left_ptr(String8 *buffer, u64 count);
-internal b32     str8_chop_right_ptr(String8 *buffer, u64 count);
 
 //- str8 substrings, matching, search
 internal String8 str8_create_substr(String8 *buffer, u64 left_offset, u64 right_offset);
 internal b32     str8_is_match(String8 a, String8 b);
+internal b32     str8_is_any_match(String8 a, String8 b);
 internal b32     str8_find(String8 *buffer, u64 start_pos, String8 element, u64 *out);
 internal b32     str8_is_digit(String8 a, u64 start_pos);
 internal b32     str8_is_empty(String8 *buffer);
+internal b32     str8_is_whitespace(String8 buffer);
+internal b32     str8_find_needle(String8 *buffer, u64 start_pos, u8 *needle, u64 *pos);
+internal b32     str8_find_last(String8 *buffer, String8 element, u64 *out);
+internal b32     str8_find_all(Arena *arena, String8 *buffer, u64 start_pos, String8 element, String8List *out);
+internal b32     str8_replace(String8 buffer, String8 element, u64 start_pos);
+internal b32     str8_prefix(Arena *arena, String8 *buffer, String8 *prefix);
+internal b32     str8_starts_with(String8 buffer, String8 prefix);
+internal String8 str8_get_file_extension(String8 buffer);
 
 //- str8 list
-internal b32 str8_list_push_node(String8List *list, String8Node *node);
+internal b32  str8_list_push_node(String8List *list, String8Node *node);
+internal void str8_pop_node(String8List *list);
+internal void str8_list_remove_node(String8List *list, String8Node *node);
 
-//- str16 / str32 chop and substrings
+//- str16 / str32 trim, chop and substrings
+internal void     str16_trim_left(String16 *buffer);
+internal void     str32_trim_left(String32 *buffer);
 internal String16 str16_chop_left(String16 buffer, u64 count);
 internal String16 str16_chop_right(String16 buffer, u64 count);
 internal String16 str16_create_substr(String16 *buffer, u64 left_offset, u64 right_offset);
@@ -113,12 +154,13 @@ internal String32 str32_chop_right(String32 buffer, u64 count);
 internal String32 str32_create_substr(String32 *buffer, u64 left_offset, u64 right_offset);
 
 //- null-termination helpers
-internal cstring null_terminate(Arena *arena, String8 *c);
+internal cstring null_terminate(Arena *arena, String8 *buffer);
 internal String8 remove_null_terminator(Arena *arena, String8 c);
 
 //- convert
 
-internal cstring str8_to_cstring(String8 *buffer);
+internal cstring str8_to_cstring(Arena *arena, String8 *buffer);
+internal int     str8_to_int(String8 *buffer);
 
 //- cstring character classification
 internal b32 cstring_is_digit(u8 point);
@@ -144,7 +186,7 @@ internal u64 cstring8_find_needle(u8 *buffer, u8 needle);
 
 //-
 
-#if COMPILER_GCC
+#if COMPILER_GCC || COMPILER_CLANG
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #endif
@@ -170,56 +212,56 @@ ReadOnly global_variable String32List nil_str32_list = {NULL, {}};
 // null terminated and when not. because in thi case I am the one passing a string "/" or something
 // like that. is that null terminated or not?
 #define ToString8(data)                                  \
- String8                                              \
- {                                                    \
-  (u8 *)(data), (u64)(cstring8_length((u8 *)data)) \
- }
+String8                                              \
+{                                                    \
+(u8 *)(data), (u64)(cstring8_length((u8 *)data)) \
+}
 #define ToString16(data)                                    \
- String16                                                \
- {                                                       \
-  (u16 *)(data), (u64)(cstring16_length((u16 *)data)) \
- }
+String16                                                \
+{                                                       \
+(u16 *)(data), (u64)(cstring16_length((u16 *)data)) \
+}
 #define ToString32(data)                                    \
- String32                                                \
- {                                                       \
-  (u32 *)(data), (u64)(cstring32_length((u32 *)data)) \
- }
+String32                                                \
+{                                                       \
+(u32 *)(data), (u64)(cstring32_length((u32 *)data)) \
+}
 
 #define str8(buffer) ToString8(buffer)
 #define str16(buffer) ToString16(buffer)
 #define str32(buffer) ToString32(buffer)
 
 #define ToString8Size(data, size) \
- String8                       \
- {                             \
-  (u8 *)(data), (u64)(size) \
- }
+String8                       \
+{                             \
+(u8 *)(data), (u64)(size) \
+}
 #define ToString16Size(data, size) \
- String16                       \
- {                              \
-  (u16 *)(data), (u64)(size) \
- }
+String16                       \
+{                              \
+(u16 *)(data), (u64)(size) \
+}
 #define ToString32Size(data, size) \
- String32                       \
- {                              \
-  (u32 *)(data), (u64)(size) \
- }
+String32                       \
+{                              \
+(u32 *)(data), (u64)(size) \
+}
 
 #define ToString8Node(string)  \
- String8Node                \
- {                          \
-  &nil_str8_node, string \
- }
+String8Node                \
+{                          \
+&nil_str8_node, string \
+}
 #define ToString16Node(string) \
- String16Node               \
- {                          \
-  &nil_str8_node, string \
- }
+String16Node               \
+{                          \
+&nil_str8_node, string \
+}
 #define ToString32Node(string) \
- String32Node               \
- {                          \
-  &nil_str8_node, string \
- }
+String32Node               \
+{                          \
+&nil_str8_node, string \
+}
 
 #define str8_node(text) ToString8Node(str8(text))
 #define str16_node(text) ToString16Node(str16(text))
@@ -234,21 +276,25 @@ ReadOnly global_variable String32List nil_str32_list = {NULL, {}};
 #define FOR_STR8_CHOP_LEFT(index, buffer, count) FOR_STR8_CHOP(index, buffer, count, str8_chop_left)
 
 #define FOR_STR8_CHOP_RIGHT(index, buffer, count) \
- FOR_STR8_CHOP(index, buffer, count, str8_chop_right)
+FOR_STR8_CHOP(index, buffer, count, str8_chop_right)
 
 // NOTE: we face an issue with returning an rvalue. to solve this we should only use the pointer
 // functions that we create (str8_chop_left_ptr and str8_chop_right_ptr)
 #define FOR_STR8_CHOP(index, buffer, count, function)                         \
- for(u64 index = 0; (index < (buffer.size)) && ((buffer.size) > (count)); \
-      function((buffer), (count)), ++index)
+for(u64 index = 0; (index < (buffer.size)) && ((buffer.size) > (count)); \
+function((buffer), (count)), ++index)
 
 #define FOR_STR8_ARB_FN(expr, function, ...) LOOP(expr, function(__VA_ARGS__))
 
 #define FOR_STR8_MATCH(buffa, buffb) LOOP(str8_is_match(buffa, buffb), str8_chop_left(buffa, 1))
 
 #define FOR_STR8_NODE(str8_list, current)                                     \
- for(String8Node *current = str8_list->first; !is_nil_str8_node(current); \
-      current              = current->next)
+for(String8Node *current = str8_list->first; !is_nil_str8_node(current); \
+current              = current->next)
+
+#define FOR_NODE(name, list, nil) \
+for(__typeof__((list->root)) name= (list)->root; name != NULL && name != (nil); name = name->next)
+
 
 internal b32 is_nil_str8(String8 *a);
 internal b32 is_nil_str8_node(String8Node *a);
@@ -262,9 +308,26 @@ internal b32 is_nil_str32_node(String32Node *a);
 #endif
 
 #define Str8Fmt "%.*s"
-#define Str8Arg(buffer) (u64)((buffer).size), (char *)((buffer).data)
+#define Str8Arg(buffer) (int)((buffer).size), (char *)((buffer).data)
 
-#define Str8FindNeedle(buffer, start_pos, needle, pos) str8_find_needle(buffer, (u64)start_pos, (u8 *)needle, pos)
+//- arrays
+
+internal String8Array str8_array_reserve(Arena *arena, u64 count);
+internal String8Array str8_array_from_list(Arena *arena, String8List *list);
+internal String8Array str8_array_slice(String8Array array, u64 first, u64 count);
+internal void str8_concat_list(String8List *a, String8List *b);
+
+#define FOR_STR8_ARRAY(array, it)					\
+for(String8 *it = (array).v; it < (array).v + (array).count; ++it)
+
+#define Str8ArrayAlloc(arena,  size) String8Array { \
+.size = (size), \
+.index = 0, \
+.array = PushArrayZero(arena, String8, (size)), }
+
+#define Str16ArrayAlloc(arena, size)
+#define Str32ArrayAlloc(arena, size)
+
 
 
 #endif /* BASE_STRING_H */

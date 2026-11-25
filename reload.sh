@@ -1,5 +1,4 @@
-
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 date
@@ -24,10 +23,6 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
-# NOTE: loo skips reloading while this exists, so it never loads a half written state.so
-LOCK_FILE="${BUILD_DIR}/state.lock"
-touch "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT
-
-echo "Building ${BUILD_DIR}/state.so..."
-time g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo_state.cpp" $SOFLAGS -fuse-ld=mold -o "${BUILD_DIR}/loo_state.so"
+echo "Building ${BUILD_DIR}/loo_state.so..."
+time g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo_state.cpp" $SOFLAGS -fuse-ld=mold -o "${BUILD_DIR}/loo_state.so.tmp"
+mv "${BUILD_DIR}/loo_state.so.tmp" "${BUILD_DIR}/loo_state.so"

@@ -3,26 +3,27 @@
 
 //- Types
 
+
 typedef void(LibSym)(void *);
 
 
 typedef struct LibrarySymbols LibrarySymbols;
 struct LibrarySymbols {
- LibSym *current_sym;
- LibSym *next_sym;
- LibSym *previous_sym;
+	LibSym *current_sym;
+	LibSym *next_sym;
+	LibSym *previous_sym;
 };
 
 typedef struct SharedLibrary SharedLibrary;
 struct SharedLibrary {
- void           *mem;
- cstring         name;
- LibrarySymbols *symbols;
+	void           *mem;
+	cstring         name;
+	LibrarySymbols *symbols;
 };
 
 typedef struct Directory Directory;
 struct Directory {
- String8List *file_names;
+	String8List *file_names;
 };
 
 #define LibraryLoad(arena, path) linux_load_shared_library(arena, path)
@@ -41,22 +42,30 @@ internal String8 linux_get_env(const char *var);
 internal b32          linux_file_write(String8 data, String8 path);
 internal String8      linux_file_load(Arena *arena, String8 path);
 internal b32          linux_file_exists(Arena *arena, String8 path);
+internal b32          linux_delete_file(Arena *arena, String8 path);
+internal b32          linux_relative_path(Arena *arena, String8 *path);
+internal String8      linux_read_self(Arena *arena);
 internal String8List *linux_open_dir(Arena *arena,
-                                    String8  *original_path); // TODO: change the return value
+									 String8  *path); // TODO: change the return value
 
 internal s64  linux_read(int fd, const void *buf, u64 count);
 internal void linux_os_exit() __attribute__((noreturn));
 
 internal s64  linux_log(int fd, const void *buf, u64 count);
 internal void linux_log_with_args(const char *format, ...);
+internal void linux_log_with_args_nl(const char *format, ...);
 
 
 #define FileLoad(arena, path) linux_file_load(arena, path)
 #define FileWrite(data, path) linux_file_write(data, path)
 #define FileExists(arena,  path) linux_file_exists(arena, path)
-#define DirLoadFileNames(arena, path) linux_open_dir(arena, path)
+#define OpenDir(arena, path) linux_open_dir(arena, path)
 #define ReadSelf(arena) linux_read_self(arena)
 #define FileDelete(arena, path) linux_delete_file(arena, path)
+
+#define LogBacktrace   signal(SIGSEGV, linux_sig_handler); signal(SIGTRAP, linux_sig_handler)
+
+
 
 #if DEBUG
 #define OSExit(code) _exit(code)
@@ -73,7 +82,7 @@ internal void linux_log_with_args(const char *format, ...);
 // variadic so it replaced different params
 
 #define ENTRYPOINT_1(unused) int main(void)
-#define ENTRYPOINT_2(argc, argv) int main(int argc, char **args)
+#define ENTRYPOINT_2(argc, args) int main(int argc, char **args)
 
 #define ENTRYPOINT_PICK(_1, _2, NAME, ...) NAME
 #define ENTRYPOINT(...) ENTRYPOINT_PICK(__VA_ARGS__, ENTRYPOINT_2, ENTRYPOINT_1, )(__VA_ARGS__)

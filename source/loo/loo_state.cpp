@@ -3,66 +3,38 @@
 #include "loo_platform.h"
 #include "loo.h"
 
+internal void draw_rect(FrameBuffer *fb, s32 x0, s32 y0, s32 x1, s32 y1, RGB color) {
+	x0 = Clamp(x0, 0, fb->width);
+	x1 = Clamp(x1, 0, fb->width);
+	y0 = Clamp(y0, 0, fb->height);
+	y1 = Clamp(y1, 0, fb->height);
+	u32 c = rgb_to_u32(color);
 
-internal void clamp_to_framebuffer(s32 width, s32 height, Vec2 *pos0, Vec2 *pos1) {
- if (pos1->x <= 0) pos0->x = 0;
- if (pos1->y <= 0) pos0->y = 0;
- if (pos1->x > width)  pos0->x = width;
- if (pos1->y > height) pos0->y = height;
- }
-
-
- internal void draw_line(FrameBuffer *fb, Vec2 pos0, Vec2 pos1, RGB color) {
-
- clamp_to_framebuffer(fb->width, fb->height, &pos0, &pos1);
- u32 c = SHIFTRGB(color);
-
- u32 *row = fb->pixels + 1 * fb->pitch;
- for(s32 x = pos0.x; x < pos1.x; ++x) row[x] = c;
- for(s32 y = pos0.y; y < pos1.y; ++y) row[y] = c;
-
- }
-
- internal void draw_rect(FrameBuffer *fb, Vec2 pos0, Vec2 pos1, RGB color) {
- clamp_to_framebuffer(fb->width, fb->height, &pos0, &pos1);
- u32 c = SHIFTRGB(color);
-
- for(s32 y = pos0.y; y < pos1.y; ++y)
- {
- u32 *row = fb->pixels + y * fb->pitch;
-
- for(s32 x = pos0.x; x < pos1.x; ++x) {
-
- row[x] = c;
- }
- }
- }
-
- extern "C" GAME_UPDATE_AND_RENDER(game_update_and_render) {
-
- if (!memory->is_initialized)
- {
- GameState *game = PushStructZero(memory->permanent, GameState);
- game->player = { Vec2(1.3, 0.4), 80, 80 };
- memory->state = game;
- memory->is_initialized = true;
- }
-
- GameState *game = (GameState *)memory->state;
-
- MemSetZero(fb->pixels, (u64)fb->pitch * fb->height * sizeof(u32));
-
-Vec2 pos0 = Vec2(100, 100);
-Vec2 pos1 = Vec2(300, 200);
-draw_rect(fb, pos0, pos1, GREEN);
-if(button_pressed(input->move_up)) {
-pos0.y++;
-pos1.y++;
-} else if(button_pressed(input->move_down)) {
-pos0.y--;
-pos1.y--;
+	for (s32 y = y0; y < y1; ++y) {
+		u32 *row = fb->pixels + (u64)y * fb->width;
+		for (s32 x = x0; x < x1; ++x) row[x] = c;
+	}
 }
 
+extern "C" GAME_UPDATE_AND_RENDER(game_update_and_render) {
+	if (!memory->state) {
+		GameState *game = PushStructZero(memory->permanent, GameState);
+		game->player = { Vec2(100, 100), 80, 80 };
+		memory->state = game;
+	}
 
+	GameState *game = (GameState *)memory->state;
+	Entity *player = &game->player;
+
+	f32 speed = 400.0f;
+	if (input->move_left.ended_down)  player->pos.x -= speed * input->dt;
+	if (input->move_right.ended_down) player->pos.x += speed * input->dt;
+	if (input->move_up.ended_down)    player->pos.y -= speed * input->dt;
+	if (input->move_down.ended_down)  player->pos.y += speed * input->dt;
+
+	MemSetZero(fb->pixels, (u64)fb->width * fb->height * sizeof(u32));
+
+	s32 x = (s32)player->pos.x;
+	s32 y = (s32)player->pos.y;
+	draw_rect(fb, x, y, x + player->width, y + player->height, GREEN);
 }
- 
