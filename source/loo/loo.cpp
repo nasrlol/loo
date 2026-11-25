@@ -3,8 +3,8 @@
 #include "base_include.h"
 #include "render_include.h"
 #include "platform_include.h"
+#include "platform/platform.h"
 #include "loo_platform.h"
-
 
 #define FRAMEBUFFER_WIDTH  1920
 #define FRAMEBUFFER_HEIGHT 1080
@@ -26,7 +26,9 @@ internal void game_code_init_path(Arena *arena, GameCode *code) {
 		self.size = slash_position + 1;
 	}
 	
-	String8 name = str8("loo_state.so");
+	const char *lib = "loo_state.so";
+	
+	String8 name = str8(lib);
 	code->path      = PushString8(arena, self.size + name.size + 1);
 	code->path.size = 0;
 	str8_append(&code->path, self);
@@ -110,8 +112,11 @@ ENTRYPOINT()
 	
 	f32 dt = 1.0f / PlatformWindowRefreshHz(window);
 	PlatformInput platform_input = {};
-	while (PlatformWindowPump(window, &platform_input)) {
-		if (platform_input.keys[KEY_ESC].ended_down || platform_input.keys[KEY_Q].ended_down) {
+	while (PlatformWindowPump(window, &platform_input))
+	{
+		if (platform_input.keys[KEY_ESC].ended_down ||
+			platform_input.keys[KEY_Q].ended_down)
+		{
 			break;
 		}
 		

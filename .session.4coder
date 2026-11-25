@@ -4,10 +4,8 @@ current = 0;
 
 tabs = {
 	{
-		{ .kind=3, .pixel_y=0x00000000, .line=1, .cursor=723, .mark=0, .file="/home/nasr/dev/loo/source/render/render_vulkan.cpp", },
-		{ .kind=0, .split_t=0x3F263683, .split=2, },
-		{ .kind=2, .pixel_y=0x41200000, .line=2, .cursor=144, .mark=0, .file="/home/nasr/dev/loo/source/render/render_vulkan.h", },
-		{ .kind=1, .split_t=0x3F000000, .split=2, },
-		{ .kind=2, .pixel_y=0x00000000, .line=1, .cursor=0, .mark=0, .file="/home/nasr/dev/loo/todo.txt", },
+		{ .kind=2, .pixel_y=0x40E00000, .line=123, .cursor=4122, .mark=3923, .file="/home/nasr/dev/loo/source/loo/loo.cpp", },
+		{ .kind=0, .split_t=0x3F000000, .split=2, },
+		{ .kind=3, .pixel_y=0x00000000, .line=1, .cursor=0, .mark=758, .file="/opt/4coder/build/config.4coder", },
 	},
 };

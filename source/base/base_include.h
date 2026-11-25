@@ -80,8 +80,10 @@
 
 #if ARCH_x86_64
 #include "base_profile_x64.h"
+#include "base_simd_x64.cpp"
 #elif ARCH_ARM
 #include "base_profile_arm.h"
+#include "base_simd_arm.cpp"
 #endif
 
 #include "base_memory.cpp"
@@ -89,7 +91,6 @@
 #include "base_stack.cpp"
 #include "base_string.cpp"
 #include "base_math.cpp"
-#include "base_simd.cpp"
 
 #if PLATFORM_LINUX
 #include "base_arena_linux.cpp"

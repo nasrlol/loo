@@ -1,8 +1,6 @@
 #ifndef LOO_PLATFORM_H
 #define LOO_PLATFORM_H
 
-#include "platform/platform.h"
-
 typedef struct FrameBuffer FrameBuffer;
 struct FrameBuffer {
 	u32 *pixels;
@@ -13,14 +11,14 @@ struct FrameBuffer {
 typedef struct GameInput GameInput;
 struct GameInput {
 	f32 dt;
-
+	
 	PlatformButton move_up;
 	PlatformButton move_down;
 	PlatformButton move_left;
 	PlatformButton move_right;
 	PlatformButton action;
 	PlatformButton back;
-
+	
 	PlatformButton mouse[3];
 	s32 mouse_x, mouse_y;
 	b32 mouse_in_window;
