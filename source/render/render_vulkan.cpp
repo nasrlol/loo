@@ -29,6 +29,14 @@ internal QueueFamiliyIndices find_queue_famillites(Arena *arena, VkPhysicalDevic
 	return indices;
 }
 
+internal void create_logical_device()
+{
+	
+	// TODO:
+	
+	
+}
+
 // TODO: with each feature found score the device and the highest device is  the deticated gpu  the one below that probably the integrated gpu.
 // that way we always have a GPU to use
 internal b32 is_device_suitable(Arena *arena, VkPhysicalDevice device)
@@ -41,23 +49,39 @@ internal b32 is_device_suitable(Arena *arena, VkPhysicalDevice device)
 	
 	QueueFamiliyIndices indices = find_queue_famillites(arena, device);
 	
-	//- queueus
+	
 	VkDeviceQueueCreateInfo queue_create_info = {};
-	{
-		queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queue_create_info.queueFamilyIndex = indices.graphics_family;
-		queue_create_info.queueCount = 1;
-		f32 queue_priority = 1.0f;
-		queue_create_info.pQueuePriorities = &queue_priority;
-	}
+	
+	queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queue_create_info.queueFamilyIndex = indices.graphics_family;
+	queue_create_info.queueCount = 1;
+	f32 queue_priority = 1.0f;
+	queue_create_info.pQueuePriorities = &queue_priority;
+	
+	VkPhysicalDeviceFeatures device_features = {};
+	
+	VkDeviceCreateInfo create_info           = {};
+	
+	create_info.sType                        = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pQueueCreateInfos             = &queue_create_info;
+	createInfo.queueCreateInfoCount          = 1;
+	createInfo.pEnabledFeatures              = &device_features;
 	
 	
-	//- used device features
+	// TODO: validation layer
+	b32 enabled_validation_layers false;
+	u32 validation_layers_count = 0;
+	
+	create_info.enabledExtensionCount = 0;
+	if(enable_validation_layers) // TODO: we don't handle validation layers yet
 	{
-		
-		
-		
+		create_info.enabledLayerCount = validation_layers_count;
 	}
+	else
+	{
+		create_info.enabledLayerCount = 0;
+	}
+	
 	
 	
 	return device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
@@ -164,6 +188,12 @@ vk_render_entrypoint(Arena *arena, const char *name)
 			}
 		}
 		Assert(physical_device  != VK_NULL_HANDLE);
+		
+		if (vkCreateDevice(physical_device, &create_info, NULL, &device) != VK_SUCCESS) {
+			Log("failed to create device");
+		}
+		
+		
 		
 	}
 	
