@@ -1,3 +1,70 @@
+struct QueueFamiliyIndices
+{
+	u32 graphics_family;
+};
+
+#define EA_QUEUE_FAMILY_NONE 0xFFFFFFFF
+
+internal QueueFamiliyIndices find_queue_famillites(Arena *arena, VkPhysicalDevice device)
+{
+	QueueFamiliyIndices indices =  {0};
+	indices.graphics_family = EA_QUEUE_FAMILY_NONE;
+	
+	u32 queue_families_count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_families_count, NULL);
+	
+	VkQueueFamilyProperties *queue_families = PushArrayZero(arena,  VkQueueFamilyProperties, queue_families_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_families_count, queue_families);
+	
+	// we need to find atleast one queue familiy that supportsd VK_QUEU_GRAPHICS_BIT
+	for(u32 index = 0; index < queue_families_count; ++index)
+	{
+		
+		if(queue_families[index].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		{
+			indices.graphics_family =  index;
+		}
+	}
+	
+	return indices;
+}
+
+// TODO: with each feature found score the device and the highest device is  the deticated gpu  the one below that probably the integrated gpu.
+// that way we always have a GPU to use
+internal b32 is_device_suitable(Arena *arena, VkPhysicalDevice device)
+{
+	VkPhysicalDeviceProperties device_properties;
+	VkPhysicalDeviceFeatures   device_features;
+	
+	vkGetPhysicalDeviceProperties(device, &device_properties);
+	vkGetPhysicalDeviceFeatures(device, &device_features);
+	
+	QueueFamiliyIndices indices = find_queue_famillites(arena, device);
+	
+	//- queueus
+	VkDeviceQueueCreateInfo queue_create_info = {};
+	{
+		queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queue_create_info.queueFamilyIndex = indices.graphics_family;
+		queue_create_info.queueCount = 1;
+		f32 queue_priority = 1.0f;
+		queue_create_info.pQueuePriorities = &queue_priority;
+	}
+	
+	
+	//- used device features
+	{
+		
+		
+		
+	}
+	
+	
+	return device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+		&& device_features.geometryShader
+		&& indices.graphics_family != EA_QUEUE_FAMILY_NONE;
+}
+
 internal void
 vk_render_entrypoint(Arena *arena, const char *name)
 {
@@ -21,9 +88,7 @@ vk_render_entrypoint(Arena *arena, const char *name)
 		ScratchArena scratch = scratch_start(arena);
 		
 		u32 layer_count = 0;
-		vkEnumerateInstanceLayerProperties(&layer_count, NULL);
-		VkLayerProperties *available_layers = PushArrayZero(scratch.arena, VkLayerProperties, layer_count);
-		vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
+		vkEnumerateInstanceLayerProperties(&layer_count, NULL); VkLayerProperties *available_layers = PushArrayZero(scratch.arena, VkLayerProperties, layer_count); vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 		
 		b32 layer_found = false;
 		for (u32 index = 0; index < layer_count; ++index)
@@ -45,7 +110,24 @@ vk_render_entrypoint(Arena *arena, const char *name)
 		{
 			Log("requested validation layer not found\n");
 		}
+		
 	}
+	
+	//- checking for extensions
+	{
+		
+		ScratchArena scratch              = scratch_start(arena); // TODO: can this even go into a scratch?
+		u32 extension_count               = 0;
+		vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
+		VkExtensionProperties  *extensions = PushArrayZero(scratch.arena, VkExtensionProperties, extension_count);
+		vkEnumerateInstanceExtensionProperties(NULL, &extension_count, extensions);
+		for (u32 index                    = 0; index < extension_count; ++index)
+		{
+			Log("%s\n", extensions[index].extensionName);
+		}
+		scratch_end(&scratch);
+	}
+	
 	
 	VkInstance instance = VK_NULL_HANDLE;
 	VkResult result     = vkCreateInstance(&create_info, NULL, &instance);
@@ -55,20 +137,37 @@ vk_render_entrypoint(Arena *arena, const char *name)
 		return;
 	}
 	
-	
-	// checking for extensions
+	// TODO: validation layers for debugging if we want them in the future
 	{
 		
-		ScratchArena scratch              = scratch_start(arena);
-		u32 extension_count               = 0;
-		vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
-		VkExtensionProperties  *extensions = PushStructZero(scratch.arena, VkExtensionProperties);
-		vkEnumerateInstanceExtensionProperties(NULL, &extension_count, extensions);
-		for (u32 index                    = 0; index < extension_count; ++index)
-		{
-			Log("%s\n", extensions[index].extensionName);
-		}
 	}
+	
+	
+	
+	{
+		VkPhysicalDevice physical_device =  VK_NULL_HANDLE;
+		u32 device_count                 =  0;
+		vkEnumeratePhysicalDevices(instance, &device_count, NULL);
+		
+		Assert(device_count);
+		
+		VkPhysicalDevice *devices = PushArrayZero(arena, VkPhysicalDevice, device_count);
+		vkEnumeratePhysicalDevices(instance, &device_count, devices);
+		VkPhysicalDevice device = NULL;
+		
+		for(u32 index = 0; index < device_count; ++index)
+		{
+			if(is_device_suitable(arena, devices[index]))
+			{
+				device = devices[index];
+				break;
+			}
+		}
+		Assert(physical_device  != VK_NULL_HANDLE);
+		
+	}
+	
+	
 	
 	
 	vkDestroyInstance(instance, NULL);

@@ -15,19 +15,19 @@ struct WaylandState {
 	struct wl_shm        *shm;
 	struct xdg_wm_base   *wm;
 	struct wl_seat       *seat;
-
+	
 	struct wl_surface   *surface;
 	struct xdg_surface  *xsurf;
 	struct xdg_toplevel *top;
-
+	
 	struct wl_keyboard *keyboard;
 	struct wl_pointer  *pointer;
 	PlatformInput input;
-
+	
 	u32 width;
 	u32 height;
 	WaylandBuffer buffers[2];
-
+	
 	b32 configured;
 	b32 should_close;
 };

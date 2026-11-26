@@ -25,9 +25,6 @@
 
 #endif // PLATFORM_LINUX
 
-//-
-#include "platform.h"
-
 #if PLATFORM_LINUX
 #if X11
 #include "platform_linux_x11.h"

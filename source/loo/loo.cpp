@@ -1,10 +1,9 @@
 // TODO: in the reload function replace the linux implementatoin with a platform generic one
 
 #include "base_include.h"
-#include "render_include.h"
-#include "platform_include.h"
-#include "platform/platform.h"
 #include "loo_platform.h"
+#include "platform_include.h"
+#include "render_include.h"
 
 #define FRAMEBUFFER_WIDTH  1920
 #define FRAMEBUFFER_HEIGHT 1080

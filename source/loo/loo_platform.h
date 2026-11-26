@@ -8,6 +8,31 @@ struct FrameBuffer {
 	s32 height;
 };
 
+
+typedef struct WindowParams WindowParams;
+struct WindowParams {
+	cstring name;
+	int window_width;
+	int window_height;
+};
+
+typedef struct PlatformWindow PlatformWindow;
+
+typedef struct PlatformButton PlatformButton;
+struct PlatformButton {
+	s32 half_transition_count;
+	b32 ended_down;
+};
+
+typedef struct PlatformInput PlatformInput;
+struct PlatformInput {
+	PlatformButton keys[256];
+	PlatformButton mouse[3]; // BTN_LEFT, BTN_RIGHT, BTN_MIDDLE
+	s32 mouse_x, mouse_y;
+	b32 mouse_in_window;
+};
+
+
 typedef struct GameInput GameInput;
 struct GameInput {
 	f32 dt;

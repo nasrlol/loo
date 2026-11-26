@@ -1,8 +1,7 @@
+#ifndef BASE_SIMD_X64
+#define BASE_SIMD_X64
+
 typedef __u128 __u128;
-
-#if ARCH_ARM
-#include <arm_neon.h>
-
 
 #define u8x16 uint8x16_t
 
@@ -51,4 +50,4 @@ internal u64 simd_find_byte(u8 *data, u64 size, u8 byte) {
 	return size;
 }
 
-#endif // ARCH
+#endif // BASE_SIMD_X64

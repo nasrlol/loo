@@ -3,6 +3,7 @@
 #include "loo_platform.h"
 #include "loo.h"
 
+
 extern "C" GAME_UPDATE_AND_RENDER(game_update_and_render) {
 	if (!memory->state) {
 		GameState *game = PushStructZero(memory->permanent, GameState);

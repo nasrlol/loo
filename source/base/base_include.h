@@ -79,11 +79,13 @@
 #endif
 
 #if ARCH_x86_64
+
 #include "base_profile_x64.h"
-#include "base_simd_x64.cpp"
+#include "base_simd_x64.h"
 #elif ARCH_ARM
 #include "base_profile_arm.h"
-#include "base_simd_arm.cpp"
+#include <arm_neon.h>
+#include "base_simd_arm.h"
 #endif
 
 #include "base_memory.cpp"

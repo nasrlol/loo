@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
 BUILD_DIR=build
@@ -9,7 +9,7 @@ LIBS="-pthread "
 
 DEBUG=1
 
-VULKAN=0
+VULKAN=1
 WAYLAND=1
 X11=0
 
@@ -34,7 +34,7 @@ fi
 mkdir -p "$BUILD_DIR"
 
 STATUS=0
-OUTPUT=$( { time g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -fuse-ld=mold -o "${BUILD_DIR}/loo" $LIBS; } 2>&1 ) || STATUS=$?
+OUTPUT=$( { build-notify  g++ $INCLUDES $CFLAGS "${SOURCE_DIR}/loo/loo.cpp" -fuse-ld=mold -o "${BUILD_DIR}/loo" $LIBS; } 2>&1 ) || STATUS=$?
 
 if [ $STATUS -eq 0 ]; then
     echo -e "==== BUILD SUCCESS ====\n"

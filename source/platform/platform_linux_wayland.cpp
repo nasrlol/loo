@@ -86,13 +86,13 @@ internal PlatformWindow *wayland_window_open(Arena *arena, WindowParams params) 
 	WaylandState *st = &window->wayland;
 	st->width  = (u32)params.window_width;
 	st->height = (u32)params.window_height;
-
+	
 	st->display = wl_display_connect(NULL);
 	AssertLog(st->display, "no wayland display\n");
 	wl_registry_add_listener(wl_display_get_registry(st->display), &reg_listener, st);
 	wl_display_roundtrip(st->display);
 	AssertLog(st->compositor && st->shm && st->wm, "missing wayland globals\n");
-
+	
 	st->surface = wl_compositor_create_surface(st->compositor);
 	st->xsurf   = xdg_wm_base_get_xdg_surface(st->wm, st->surface);
 	st->top     = xdg_surface_get_toplevel(st->xsurf);
@@ -101,7 +101,7 @@ internal PlatformWindow *wayland_window_open(Arena *arena, WindowParams params) 
 	xdg_toplevel_set_title(st->top, params.name);
 	wl_surface_commit(st->surface);
 	while (!st->configured) wl_display_dispatch(st->display);
-
+	
 	u32 stride = st->width * 4;
 	u32 frame  = stride * st->height;
 	int fd = memfd_create("loo", MFD_CLOEXEC);
@@ -122,7 +122,7 @@ internal PlatformWindow *wayland_window_open(Arena *arena, WindowParams params) 
 
 internal b32 wayland_window_pump(PlatformWindow *window, PlatformInput *input) {
 	WaylandState *st = &window->wayland;
-
+	
 	wl_display_flush(st->display);
 	if (wl_display_prepare_read(st->display) == 0) {
 		struct pollfd fd = { wl_display_get_fd(st->display), POLLIN, 0 };
@@ -130,24 +130,24 @@ internal b32 wayland_window_pump(PlatformWindow *window, PlatformInput *input) {
 		else                     wl_display_cancel_read(st->display);
 	}
 	wl_display_dispatch_pending(st->display);
-
+	
 	*input = st->input;
 	for (u32 i = 0; i < ArrayCount(st->input.keys);  ++i) st->input.keys[i].half_transition_count  = 0;
 	for (u32 i = 0; i < ArrayCount(st->input.mouse); ++i) st->input.mouse[i].half_transition_count = 0;
-
+	
 	return !st->should_close && wl_display_get_error(st->display) == 0;
 }
 
 internal void wayland_window_present(PlatformWindow *window, u32 *pixels, u32 width, u32 height) {
 	WaylandState *st = &window->wayland;
 	Assert(width == st->width && height == st->height);
-
+	
 	WaylandBuffer *b = !st->buffers[0].busy ? &st->buffers[0] : &st->buffers[1];
 	while (b->busy) {
 		if (wl_display_dispatch(st->display) == -1) return;
 		b = !st->buffers[0].busy ? &st->buffers[0] : &st->buffers[1];
 	}
-
+	
 	MemCpy(b->pixels, pixels, (u64)width * height * 4);
 	wl_surface_attach(st->surface, b->buffer, 0, 0);
 	wl_surface_damage(st->surface, 0, 0, width, height);

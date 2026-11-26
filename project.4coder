@@ -1,6 +1,5 @@
 version(2);
 project_name = "loo";
-
 patterns = {
 	"*.c",
 	"*.cpp",
@@ -43,16 +42,16 @@ load_paths = {
 
 commands = {
 	.build = {
-		.linux            = "direnv exec . ./build.sh",
-		.mac              = "direnv exec . ./build.sh",
+		.linux            = "./build.sh",
+		.mac              = "./build.sh",
 		.out              = "*compilation*",
 		.footer_panel     = false,
 		.save_dirty_files = true,
 		.cursor_at_end    = true,
 	},
 	.run = {
-		.linux            = "direnv exec . ./build/loo",
-		.mac              = "direnv exec . ./build/loo",
+		.linux            = "build/loo",
+		.mac              = "build/loo",
 		.out              = "*compilation*",
 		.footer_panel     = false,
 		.save_dirty_files = true,

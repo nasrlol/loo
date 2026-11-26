@@ -2,7 +2,6 @@
 #define RENDER_2D_H
 
 //- colors
-// TODO: should go in a header file later
 
 typedef struct RGB RGB;
 struct RGB { u8 r; u8 g; u8 b; };
@@ -34,8 +33,9 @@ struct RGB { u8 r; u8 g; u8 b; };
 
 typedef struct Plane Plane;
 struct Plane {
-	Vec2 n;
-	f32 d;
+	
+	Vec2   n;
+	f32    d;
 };
 
 

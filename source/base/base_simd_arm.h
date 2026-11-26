@@ -1,3 +1,5 @@
+#ifndef BASE_SIMD_ARM
+#define BASE_SIMD_ARM
 typedef __u128 __u128;
 
 #if ARCH_ARM
@@ -51,4 +53,4 @@ internal u64 simd_find_byte(u8 *data, u64 size, u8 byte) {
 	return size;
 }
 
-#endif // ARCH
+#endif // BASE_SIMD_ARM
