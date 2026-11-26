@@ -2,7 +2,6 @@
 #define RENDER_2D_H
 
 //- colors
-
 typedef struct RGB RGB;
 struct RGB { u8 r; u8 g; u8 b; };
 
@@ -30,13 +29,11 @@ struct RGB { u8 r; u8 g; u8 b; };
 #define LIME   ((RGB){ 50, 205,  50})
 #define GOLD   ((RGB){255, 215,   0})
 
-
 typedef struct Plane Plane;
 struct Plane {
 	
 	Vec2   n;
 	f32    d;
 };
-
 
 #endif // RENDER_2D_H

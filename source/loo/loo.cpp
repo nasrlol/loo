@@ -109,6 +109,8 @@ ENTRYPOINT()
 	GameCode code = {};
 	game_code_init_path(platform_arena, &code);
 	
+	vk_render_entrypoint(memory.permanent, "engine");
+	
 	f32 dt = 1.0f / PlatformWindowRefreshHz(window);
 	PlatformInput platform_input = {};
 	while (PlatformWindowPump(window, &platform_input))

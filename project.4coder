@@ -16,22 +16,23 @@ blacklist_patterns = {
 };
 
 paths = {
-	{ "./source/code", .relative = true, .recursive = true, },
-	{ "./source/base", .relative = true, .recursive = true, },
-	{ "./source/platform", .relative = true, .recursive = true, },
-	{ "./source/render", .relative = true, .recursive = true, },
-	{ "./source/loo", .relative = true, .recursive = true, },
+	{ .path = "./source/code",     .relative = true, .recursive = true, },
+	{ .path = "./source/base",     .relative = true, .recursive = true, },
+	{ .path = "./source/platform", .relative = true, .recursive = true, },
+	{ .path = "./source/render",   .relative = true, .recursive = true, },
+	{ .path = "./source/loo",      .relative = true, .recursive = true, },
 };
 
+// NOTE: .path must be named; a positional string is stored as key "0" and load_project ignores it
 linux_paths = {
-	{ "./source/code", .relative = true, .recursive = true, },
-	{ "./source/base", .relative = true, .recursive = true, },
-	{ "./source/platform", .relative = true, .recursive = true, },
-	{ "./source/render", .relative = true, .recursive = true, },
-	{ "./source/loo", .relative = true, .recursive = true, },
-	{ "./.deps/wayland", .relative = true, .recursive = false, },
-	{ "./.deps/vulkan",  .relative = true, .recursive = false, },
-	{ "./.deps/X11",     .relative = true, .recursive = false, },
+	{ .path = "./source/code",     .relative = true, .recursive = true, },
+	{ .path = "./source/base",     .relative = true, .recursive = true, },
+	{ .path = "./source/platform", .relative = true, .recursive = true, },
+	{ .path = "./source/render",   .relative = true, .recursive = true, },
+	{ .path = "./source/loo",      .relative = true, .recursive = true, },
+	{ .path = "./.deps/wayland",   .relative = true, .recursive = true, },
+	{ .path = "./.deps/vulkan",    .relative = true, .recursive = true, },
+	{ .path = "./.deps/X11",       .relative = true, .recursive = true, },
 };
 
 load_paths = {

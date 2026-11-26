@@ -1,6 +1,11 @@
 #ifndef RENDER_VULKAN_H
 #define RENDER_VULKAN_H
 
-internal void vk_render_entrypoint(Arena *arena, const char *name);
+struct QueueFamiliyIndices
+{
+	u32 graphics_family;
+};
+
+#define EAV_QUEUE_FAMILY_NONE 0xFFFFFFFF
 
 #endif // RENDER_VULKAN_H

@@ -15,13 +15,21 @@
 #include <linux/input-event-codes.h>
 
 #if X11
+
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+
 #elif WAYLAND
+
+#ifdef VULKAN
+#define VK_USE_PLATFORM_WAYLAND_KHR
+#endif // VULKAN
+
 #include <wayland-client.h>
 #include <poll.h>
-#endif
+
+#endif // WAYLAND || X11
 
 #endif // PLATFORM_LINUX
 

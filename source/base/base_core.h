@@ -14,11 +14,11 @@
 
 //- architecture definitions
 
-#if defined(__arm__) || defined(__aarch64__) || defined(_M_ARM64)
+#if defined(__arm__)      || defined(__aarch64__) || defined(_M_ARM64)
 #define ARCH_ARM 1
 #elif defined(__x86_64__) || defined(_M_X64)
 #define ARCH_x86_64 1
-#elif defined(__i386__) || defined(_M_IX86)
+#elif defined(__i386__)   || defined(_M_IX86)
 #define ARCH_X86 1
 #endif
 
@@ -136,7 +136,8 @@ typedef intptr_t  smm;
 // TODO: to_str8 using format specifiers
 
 typedef struct LogList LogList;
-struct LogList {
+struct LogList
+{
 	cstring *root;
 	cstring *current;
 };
@@ -153,22 +154,21 @@ struct LogList {
 #define BASE_FORCE_TAIL [[gnu::musttail]]
 #endif
 
-#define Assert(expression)   \
-do {                     \
-if(!(expression)) { \
-breakpoint();    \
-Trap();          \
-}                    \
+#define Assert(expression)                                            \
+do {                                                                \
+if(!(expression)) {                                               \
+breakpoint();                                                   \
+Trap();                                                         \
+}                                                                 \
 } while (0)
 
-// NOTE: apparantly in macros this strinifys whataever you put after the #
-#define AssertLog(expression, ...)                                                \
-do {                                                                          \
-if(!(expression)) {                                                      \
+#define AssertLog(expression, ...)                                          \
+do {                                                                      \
+if(!(expression)) {                                                     \
 Log("%s | %s:%d: %s", __FUNCTION__, __FILE__, __LINE__, #expression); \
 Log(__VA_ARGS__);                                                     \
 Assert(false);                                                        \
-}                                                                         \
+}                                                                       \
 } while (0)
 
 

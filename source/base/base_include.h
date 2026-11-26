@@ -39,7 +39,6 @@
 #include <pthread.h>
 
 
-
 #elif PLATFORM_WINDOWS
 #define _WIN32_WINNT 0x0601
 #include <windows.h>
